@@ -1,0 +1,209 @@
+\documentclass[12pt]{article}
+%ACENTOS
+\usepackage[utf8]{inputenc}
+
+%PAQUETES
+\usepackage{amsfonts,amsmath,amssymb}
+\usepackage{amsmath,latexsym}
+\usepackage{graphics,color, xcolor, soulutf8, enumitem, float}
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+\usepackage{hyperref} %Para colocar direcciones Web
+\usepackage{indentfirst}
+\usepackage{wrapfig}  %Figuras flotantes
+\usepackage{subfig}   %Un ambiente Figura con varias imagenes
+\usepackage{caption}  %Caption a subfig
+\usepackage{multicol}
+
+%MARGEN
+\setlength\topmargin{-0.5in}
+\addtolength\oddsidemargin{-0.7in}
+\setlength{\textheight}{23cm}
+\setlength{\textwidth}{17cm}
+
+%VARIABLES
+\newcommand{\R}{\mathbb R}
+
+%COLORES
+\newcommand{\red}[1]{\textcolor[rgb]{1.00,0.00,0.00}{#1}}
+\newcommand{\blue}[1]{\textcolor[rgb]{0.00,0.00,1.00}{#1}}
+\newcommand{\verde}[1]{\textcolor[rgb]{0.00,0.50,0.25}{#1}}
+
+%OTROS
+\def\refname{Referencias}%
+
+\renewcommand{\baselinestretch}{1}
+\renewcommand\familydefault{\sfdefault}
+
+\begin{document}
+{\footnotesize
+	\begin{tabular}{cc}
+		\hspace*{-1cm}
+		\begin{minipage}[H]{10cm}
+			\noindent UNIVERSIDAD CENTRAL DE VENEZUELA\\
+			FACULTAD DE CIENCIAS\\
+			ESCUELA DE COMPUTACIÓN
+		\end{minipage}
+		&
+		\begin{minipage}[H]{10cm}
+			CÁLCULO CIENTÍFICO (6109)\\
+			SEMESTRE II-2025\\
+			FEBRERO DE 2026
+		\end{minipage} \\
+\end{tabular}}
+\vspace*{2mm}
+\begin{center}
+	{\Large \textbf{Proyecto: Curvas de Nivel}} \\
+	\vspace*{3mm}
+	{\normalsize Maximiliano Barboza \hspace{1.5cm} Yunior Moreno}
+\end{center}
+
+%----------------------------------------------------------
+\section*{Motivación}
+%----------------------------------------------------------
+
+En múltiples áreas de la ciencia e ingeniería resulta necesario representar información tridimensional sobre un plano bidimensional. Una superficie definida por $f(x,y)=z$, con $f:\R^2\to\R$, se puede caracterizar parcialmente a través de sus \textit{curvas de nivel}: al interceptar la superficie con planos horizontales $z=k$ se obtienen curvas de contorno que, proyectadas sobre el plano $xy$, conforman dichas curvas de nivel \cite{penney94}.
+
+En cartografía, este recurso es fundamental para representar relieves topográficos. La cercanía entre curvas de nivel consecutivas indica pendientes pronunciadas, mientras que curvas alejadas sugieren terrenos más planos. Más allá de la visualización, el \textbf{área entre curvas de nivel} tiene aplicaciones concretas: en obras de construcción, por ejemplo, permite estimar volúmenes de excavación o relleno, lo que a su vez impacta directamente en los costos operativos de un proyecto.
+
+El presente informe aborda precisamente este problema: desarrollar las herramientas teóricas y computacionales necesarias para \textit{calcular el área entre curvas de nivel}, iniciando por el caso más sencillo --- el de funciones --- y avanzando después hacia curvas cerradas parametrizadas.
+
+%----------------------------------------------------------
+\section*{Área entre dos curvas (funciones)}
+%----------------------------------------------------------
+
+Si $p_n$ es el polinomio interpolante construido con los nodos $(x_i, f(x_i))$, $i=0,1,\ldots,n$; para una cierta función $f$ continua en $[a,b] = [x_0,x_n]$, entonces resulta natural plantear la aproximación
+\[
+\int_a^b f(x)\,dx \approx \int_a^b p_n(x)\,dx = I_n(f),
+\]
+donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Esta idea constituye la base de la integración numérica: sustituir la función original por un polinomio cuya integral sea calculable de forma explícita \cite{cheney08}. A continuación se abordan los requerimientos teóricos asociados a esta estrategia.
+
+%----------------------------------------------------------
+\subsection*{Requerimientos teóricos}
+%----------------------------------------------------------
+
+\begin{enumerate}
+	%==== ITEM 1 ====
+	\item \textbf{Preferencia de base polinomial para integración.}
+
+	El polinomio interpolante $p_n(x)$ se puede expresar en distintas bases del espacio $\Pi_n$: la base canónica $\{1,x,x^2,\ldots,x^n\}$, la base de Lagrange $\{L_0(x),L_1(x),\ldots,L_n(x)\}$ o la base de diferencias divididas de Newton. Puesto que el polinomio interpolante es único sin importar la base que se emplee, las tres representaciones conducen al mismo valor $I_n(f)$. No obstante, para efectos del cálculo de integrales, la \textbf{base de Lagrange} ofrece una ventaja clara \cite{burden02}.
+
+	Al escribir
+	\[
+	p_n(x) = \sum_{i=0}^{n} f(x_i)\,L_i(x),
+	\]
+	la integral se convierte directamente en
+	\[
+	I_n(f) = \int_a^b p_n(x)\,dx = \sum_{i=0}^{n} f(x_i) \underbrace{\int_a^b L_i(x)\,dx}_{A_i} = \sum_{i=0}^{n} A_i\,f(x_i).
+	\]
+	Lo importante es que los coeficientes $A_i$ dependen \textit{únicamente de los nodos} $x_0,x_1,\ldots,x_n$ y del intervalo $[a,b]$, pero no de la función $f$. Esto permite calcular los pesos una sola vez y reutilizarlos para cualquier función. Con la base canónica o la de Newton, esta separación no es tan inmediata, pues los coeficientes del polinomio involucran los valores $f(x_i)$ de manera más entrelazada.
+
+	%==== ITEM 2 ====
+	\item \textbf{Método de los coeficientes indeterminados.}
+
+	Existe una estrategia alternativa para obtener los pesos de cuadratura sin construir explícitamente el polinomio interpolante: el \textbf{método de los coeficientes indeterminados} \cite{chapra07}. Se parte de que la fórmula tiene la forma
+	\[
+	I_n(f) = \sum_{i=0}^{n} A_i\,f(x_i),
+	\]
+	donde los $A_i$ son incógnitas. Para hallarlos, se exige que la fórmula sea \textit{exacta} para $f(x) = 1,\, x,\, x^2, \ldots, x^n$, lo cual genera un sistema de $n+1$ ecuaciones con $n+1$ incógnitas:
+	\[
+	\sum_{i=0}^{n} A_i\,x_i^k = \int_a^b x^k\,dx, \quad k=0,1,\ldots,n.
+	\]
+	Este sistema siempre tiene solución única ya que la matriz asociada es de tipo Vandermonde (invertible cuando los nodos son distintos). La ventaja principal es que permite obtener los pesos resolviendo un sistema lineal, sin pasar por la construcción del polinomio ni por el cálculo explícito de las integrales de los $L_i(x)$. Adicionalmente, resulta sencillo verificar si la fórmula posee un \textit{grado de exactitud} superior al esperado: basta comprobar si también resulta exacta para $f(x) = x^{n+1}, x^{n+2},\ldots$
+
+	%==== ITEM 3 ====
+	\item \textbf{Cuadratura con nodos equidistantes en $[0,1]$.}
+
+	Consideremos $x_0=0$, $x_1=\tfrac{1}{2}$ y $x_2=1$ con $y_i = f(x_i)$ para $i=0,1,2$. Buscamos $A_0, A_1, A_2$ tales que
+	\[
+	I_2(f) = A_0\,y_0 + A_1\,y_1 + A_2\,y_2.
+	\]
+	Aplicando el método de coeficientes indeterminados, imponemos exactitud para $f(x) = 1,\, x,\, x^2$:
+	\begin{align}
+		f(x)=1:   &\quad A_0 + A_1 + A_2 = \int_0^1 1\,dx = 1 \label{eq:s1}\\[4pt]
+		f(x)=x:   &\quad A_0\cdot 0 + A_1\cdot\tfrac{1}{2} + A_2\cdot 1 = \int_0^1 x\,dx = \tfrac{1}{2} \label{eq:s2}\\[4pt]
+		f(x)=x^2: &\quad A_0\cdot 0 + A_1\cdot\tfrac{1}{4} + A_2\cdot 1 = \int_0^1 x^2\,dx = \tfrac{1}{3} \label{eq:s3}
+	\end{align}
+
+	Restando (\ref{eq:s3}) de (\ref{eq:s2}):
+	\[
+	\tfrac{1}{2}A_1 - \tfrac{1}{4}A_1 = \tfrac{1}{2} - \tfrac{1}{3} \quad\Longrightarrow\quad \tfrac{1}{4}A_1 = \tfrac{1}{6} \quad\Longrightarrow\quad A_1 = \frac{2}{3}.
+	\]
+	Sustituyendo $A_1$ en (\ref{eq:s2}): $\tfrac{1}{2}\cdot\tfrac{2}{3} + A_2 = \tfrac{1}{2}$, de donde $A_2 = \tfrac{1}{2} - \tfrac{1}{3} = \tfrac{1}{6}$.
+
+	De (\ref{eq:s1}): $A_0 = 1 - \tfrac{2}{3} - \tfrac{1}{6} = \tfrac{1}{6}$.
+
+	Se obtiene entonces:
+	\[
+	\boxed{I_2(f) = \frac{1}{6}\,y_0 + \frac{2}{3}\,y_1 + \frac{1}{6}\,y_2.}
+	\]
+
+	Los valores $(A_0,A_1,A_2)^T = \left(\tfrac{1}{6},\,\tfrac{2}{3},\,\tfrac{1}{6}\right)^T$ son los \textbf{pesos de cuadratura}, también conocidos como coeficientes de Newton-Cotes \cite{mathworld_newtoncotes}. Cada $A_i$ representa la contribución relativa del valor $f(x_i)$ en la aproximación de la integral. Vale la pena mencionar que esta fórmula coincide con la conocida \textit{regla de Simpson} aplicada a $[0,1]$ \cite{cheney08, burden02}.
+
+	\begin{itemize}
+		\item \textbf{Exactitud para $f \in \Pi_3$.} La fórmula $I_2(f)$ fue diseñada para ser exacta en $\Pi_2$, pues se usaron las condiciones $f=1,\,x,\,x^2$. Sin embargo, también resulta exacta para polinomios de grado 3. Como la integral y la cuadratura son operadores lineales, basta verificar para $f(x) = x^3$ (ya que $\{1,x,x^2,x^3\}$ es base de $\Pi_3$):
+		\[
+		I_2(x^3) = \frac{1}{6}\cdot 0^3 + \frac{2}{3}\cdot\left(\frac{1}{2}\right)^3 + \frac{1}{6}\cdot 1^3 = \frac{2}{3}\cdot\frac{1}{8} + \frac{1}{6} = \frac{1}{12} + \frac{2}{12} = \frac{1}{4}.
+		\]
+		Por otro lado:
+		\[
+		\int_0^1 x^3\,dx = \frac{x^4}{4}\bigg|_0^1 = \frac{1}{4}.
+		\]
+		Dado que $I_2(x^3) = \int_0^1 x^3\,dx$ y ya se tiene exactitud para $1,\,x,\,x^2$, se concluye por linealidad que $I_2(f) = \int_0^1 f(x)\,dx$ para todo $f\in\Pi_3$. $\blacksquare$
+
+		Este grado de exactitud extra es una propiedad particular de la regla de Simpson que se debe a la simetría de los nodos respecto al centro del intervalo \cite{mathworld_simpson}.
+	\end{itemize}
+
+	%==== ITEM 4 ====
+	\item \textbf{Cuadratura con nodos no equidistantes.}
+
+	Ahora tomemos $x_0=0$, $x_1=\tfrac{1}{3}$ y $x_2=1$. Aplicando nuevamente el método:
+	\begin{align}
+		f(x)=1:   &\quad A_0 + A_1 + A_2 = 1 \label{eq:n1}\\[4pt]
+		f(x)=x:   &\quad \tfrac{1}{3}A_1 + A_2 = \tfrac{1}{2} \label{eq:n2}\\[4pt]
+		f(x)=x^2: &\quad \tfrac{1}{9}A_1 + A_2 = \tfrac{1}{3} \label{eq:n3}
+	\end{align}
+
+	Restando (\ref{eq:n3}) de (\ref{eq:n2}):
+	\[
+	\left(\tfrac{1}{3} - \tfrac{1}{9}\right)A_1 = \tfrac{1}{2} - \tfrac{1}{3} \quad\Longrightarrow\quad \tfrac{2}{9}\,A_1 = \tfrac{1}{6} \quad\Longrightarrow\quad A_1 = \frac{3}{4}.
+	\]
+	De (\ref{eq:n2}): $A_2 = \tfrac{1}{2} - \tfrac{1}{3}\cdot\tfrac{3}{4} = \tfrac{1}{2} - \tfrac{1}{4} = \tfrac{1}{4}$.
+
+	De (\ref{eq:n1}): $A_0 = 1 - \tfrac{3}{4} - \tfrac{1}{4} = 0$.
+
+	La nueva cuadratura queda:
+	\[
+	I_2(f) = \frac{3}{4}\,y_1 + \frac{1}{4}\,y_2.
+	\]
+
+	Un dato llamativo es que $A_0=0$, es decir, el valor $f(0)$ no aporta nada a la aproximación. Esto ya da indicios de que la distribución de nodos no es favorable.
+
+	Verifiquemos para $f(x) = x^3$:
+	\[
+	I_2(x^3) = \frac{3}{4}\cdot\left(\frac{1}{3}\right)^3 + \frac{1}{4}\cdot 1^3 = \frac{3}{4}\cdot\frac{1}{27} + \frac{1}{4} = \frac{1}{36} + \frac{9}{36} = \frac{10}{36} = \frac{5}{18}.
+	\]
+	Mientras que $\int_0^1 x^3\,dx = \tfrac{1}{4} = \tfrac{9}{36} \neq \tfrac{5}{18}$.
+
+	\textbf{Conclusión:} esta nueva $I_2(f)$ \textit{no} es exacta para $f\in\Pi_3$. El grado de exactitud adicional que tenía la regla de Simpson se pierde al romper la simetría de los nodos. Esto pone en evidencia que la distribución de los nodos juega un papel significativo en la calidad de una cuadratura numérica \cite{chapra07}.
+\end{enumerate}
+
+
+%----------------------------------------------------------
+\section*{Área entre dos curvas cerradas (relaciones)}
+%----------------------------------------------------------
+
+% PARTE 2 TEÓRICA - POR COMPLETAR EN SIGUIENTE SECCIÓN
+
+
+%----------------------------------------------------------
+\section*{Descripción de los métodos numéricos empleados}
+%----------------------------------------------------------
+
+% DESCRIPCIÓN DE SCIPY.INTEGRATE - POR COMPLETAR
+
+
+\bibliography{biblio}
+\bibliographystyle{plain}
+
+\end{document}
