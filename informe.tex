@@ -193,14 +193,92 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Esta idea consti
 \section*{Área entre dos curvas cerradas (relaciones)}
 %----------------------------------------------------------
 
-% PARTE 2 TEÓRICA - POR COMPLETAR EN SIGUIENTE SECCIÓN
+Como se mencionó en la motivación, una curva de nivel no es necesariamente el gráfico de una función; se trata más bien de una figura cerrada en el plano. Para abordar el cálculo de áreas en este contexto, es necesario recurrir a herramientas del cálculo vectorial, en particular al \textbf{teorema de Green} y al concepto de \textbf{integral de línea} \cite{stewart12}.
+
+\subsection*{Requerimientos teóricos}
+
+\begin{enumerate}
+	%==== ITEM 1 ====
+	\item \textbf{Área de una figura cerrada a partir de mediciones discretas.}
+
+	Sea $C$ una curva cerrada simple (sin autointersecciones) recorrida en sentido antihorario, y sea $D$ la región que encierra. El teorema de Green establece que \cite{stewart12, mathworld_green}
+	\[
+	\oint_C \bigl(P\,dx + Q\,dy\bigr) = \iint_D \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dA.
+	\]
+	Si elegimos $P(x,y) = -y$ y $Q(x,y) = x$, entonces $\dfrac{\partial Q}{\partial x} - \dfrac{\partial P}{\partial y} = 1 + 1 = 2$, y la doble integral se reduce a $2\,\text{Area}(D)$. De aquí se obtiene la conocida fórmula
+	\begin{equation}\label{eq:area_green}
+	\text{Area}(D) = \frac{1}{2}\oint_C \bigl(x\,dy - y\,dx\bigr).
+	\end{equation}
+
+	Ahora bien, en la práctica no se dispone de la curva continua sino de un conjunto finito de mediciones $(x_i, y_i)$, $i=0,1,\ldots,n$, con la condición $(x_0,y_0) = (x_n,y_n)$ que garantiza el cierre de la figura. El procedimiento más directo para aproximar el área consiste en unir los puntos consecutivos mediante segmentos rectos (interpolación lineal a trozos). Sobre cada segmento que va de $(x_i, y_i)$ a $(x_{i+1}, y_{i+1})$, la contribución a la integral de línea es
+	\[
+	\frac{1}{2}\bigl(x_i\,y_{i+1} - x_{i+1}\,y_i\bigr).
+	\]
+	Sumando sobre todos los segmentos se llega a la \textbf{fórmula del cordón} (también llamada \textit{Shoelace formula}) \cite{mathworld_shoelace}:
+	\begin{equation}\label{eq:shoelace}
+	\text{Area} = \frac{1}{2}\left|\sum_{i=0}^{n-1}\bigl(x_i\,y_{i+1} - x_{i+1}\,y_i\bigr)\right|.
+	\end{equation}
+	El valor absoluto se incluye para obtener un área positiva independientemente del sentido de recorrido. Esta fórmula es exacta cuando la curva es un polígono; para curvas suaves, su precisión depende de cuán bien los segmentos rectos aproximen la curva original.
+
+	%==== ITEM 2 ====
+	\item \textbf{Rol de la integral de línea y la parametrización.}
+
+	La ecuación (\ref{eq:area_green}) expresa el área como una \textit{integral de línea} sobre la curva $C$. Para evaluarla, es necesario describir la curva mediante una parametrización: si $C$ está dada por las funciones $x(t)$ e $y(t)$ con $t\in[t_0, t_n]$, donde $(x(t_0),y(t_0)) = (x(t_n),y(t_n))$, entonces $dx = x'(t)\,dt$ y $dy = y'(t)\,dt$, y la integral de línea se convierte en una integral ordinaria \cite{stewart12}:
+	\begin{equation}\label{eq:area_param}
+	\text{Area}(D) = \frac{1}{2}\int_{t_0}^{t_n} \bigl(x(t)\,y'(t) - y(t)\,x'(t)\bigr)\,dt.
+	\end{equation}
+
+	Esta transformación es crucial porque reduce el problema bidimensional a uno unidimensional. En nuestro contexto, se dispone de puntos discretos $(x_i, y_i)$ sobre la curva, los cuales se pueden asociar a valores del parámetro $t_0 < t_1 < \cdots < t_n$. Una elección natural y sencilla es tomar $t_i = i$ para $i=0,1,\ldots,n$, aunque también es posible usar la longitud de arco acumulada como parámetro \cite{cheney08}.
+
+	Con los pares $(t_i, x_i)$ y $(t_i, y_i)$ se construyen, por separado, dos polinomios interpolantes (o \textit{splines}): uno para $x(t)$ y otro para $y(t)$. Así, la parametrización transforma un problema de curva en el plano en dos problemas independientes de interpolación en una sola variable, que es precisamente el tipo de problema que ya sabemos resolver con las técnicas de la sección anterior.
+
+	Ahora bien, la evaluación de (\ref{eq:area_param}) requiere conocer las derivadas $x'(t)$ e $y'(t)$. Si se emplea el polinomio interpolante de Lagrange, estas derivadas se pueden obtener de manera analítica. Recordemos que
+	\[
+	x(t) = \sum_{i=0}^{n} x_i\,L_i(t), \qquad L_i(t) = \prod_{\substack{j=0\\j\neq i}}^{n} \frac{t - t_j}{t_i - t_j}.
+	\]
+	Derivando respecto a $t$ y aplicando la regla del producto sobre cada $L_i$:
+	\begin{equation}\label{eq:deriv_lagrange}
+	x'(t) = \sum_{i=0}^{n} x_i\,L_i'(t), \qquad L_i'(t) = \sum_{\substack{k=0\\k\neq i}}^{n} \frac{1}{t_i - t_k}\prod_{\substack{j=0\\j\neq i\\j\neq k}}^{n} \frac{t - t_j}{t_i - t_j}.
+	\end{equation}
+	La expresión es algo extensa pero perfectamente calculable de forma algorítmica, y tiene la ventaja de no requerir diferenciación numérica (cocientes de diferencias finitas), lo que evita la amplificación de errores de redondeo inherente a ese tipo de aproximaciones \cite{burden02}.
+
+	%==== ITEM 3 ====
+	\item \textbf{Integración numérica en este contexto.}
+
+	Una vez obtenidas las funciones interpolantes $x(t)$ e $y(t)$ --- ya sea mediante polinomios de Lagrange por trozos o \textit{splines} --- se requiere calcular la integral (\ref{eq:area_param}). Para ello se puede emplear cualquier regla de cuadratura; en particular, la \textbf{regla de Simpson compuesta} resulta adecuada por su buen compromiso entre sencillez y precisión \cite{burden02}. El integrando es
+	\[
+	h(t) = x(t)\,y'(t) - y(t)\,x'(t),
+	\]
+	donde las derivadas $x'(t)$ e $y'(t)$ se obtienen mediante la expresión (\ref{eq:deriv_lagrange}).
+
+	Un aspecto delicado es la elección entre un \textit{único} polinomio interpolante global de grado $n$ o una interpolación \textit{por trozos} con polinomios de grado bajo. Con pocos puntos de control ($n \leq 8$ aproximadamente), el polinomio global suele comportarse bien. Sin embargo, cuando el número de puntos crece, aparecen oscilaciones espurias entre los nodos --- el conocido \textbf{fenómeno de Runge} \cite{cheney08} --- que distorsionan tanto la curva interpolada como el cálculo del área.
+
+	La estrategia adoptada para evitar este problema es la \textbf{interpolación local por ventanas}: para cada segmento paramétrico $[t_i, t_{i+1}]$, se selecciona una ventana de $d+1$ nodos vecinos (donde $d$ es el grado deseado, típicamente $d=3$) centrada alrededor del segmento, y se construye un polinomio de Lagrange \textit{local} usando solo esos nodos. Este polinomio se utiliza tanto para evaluar $x(t)$, $y(t)$ como para obtener las derivadas $x'(t)$, $y'(t)$ dentro del segmento, y luego se aplica la regla de Simpson sobre $[t_i, t_{i+1}]$. La contribución de todos los segmentos se acumula para obtener el área total. Esta técnica mantiene los polinomios en grado bajo, evita las oscilaciones de Runge y permite trabajar con un número arbitrario de puntos de control sin sacrificar estabilidad.
+
+	Para calcular el \textbf{área entre dos curvas cerradas} $C_1$ y $C_2$ (por ejemplo, dos curvas de nivel consecutivas donde $C_2$ encierra a $C_1$), se calcula el área de cada región por separado y luego se obtiene la diferencia:
+	\[
+	\text{Area entre curvas} = \bigl|\text{Area}(D_2) - \text{Area}(D_1)\bigr|,
+	\]
+	donde $D_1$ y $D_2$ son las regiones encerradas por $C_1$ y $C_2$ respectivamente. Este enfoque es completamente análogo al de la Parte 1, donde el área entre funciones se obtenía integrando $|f(x) - g(x)|$, solo que aquí cada ``función'' es en realidad el área encerrada por una curva parametrizada.
+
+	Conviene mencionar que la fórmula del cordón (\ref{eq:shoelace}) puede interpretarse como un caso particular de este procedimiento: corresponde a usar interpolación lineal ($d=1$) entre puntos consecutivos y calcular la integral de línea de forma exacta sobre cada segmento recto. Cuando se emplea interpolación de grado superior ($d=3$, por ejemplo), las curvas entre nodos dejan de ser rectas y pasan a ser arcos suaves, lo que mejora la aproximación del área para figuras con contornos curvos, a costa de un mayor esfuerzo computacional.
+\end{enumerate}
 
 
 %----------------------------------------------------------
 \section*{Descripción de los métodos numéricos empleados}
 %----------------------------------------------------------
 
-% DESCRIPCIÓN DE SCIPY.INTEGRATE - POR COMPLETAR
+En la implementación computacional se utilizan los siguientes métodos numéricos:
+
+\begin{itemize}
+	\item \textbf{Interpolación de Lagrange por trozos.} Para aproximar tanto funciones (Parte 1) como componentes parametrizadas $x(t)$, $y(t)$ (Parte 2), se emplea el polinomio interpolante de Lagrange en cada subintervalo. Esto permite trabajar con polinomios de grado moderado en cada trozo, evitando las oscilaciones indeseadas que aparecen con un único polinomio de grado alto (fenómeno de Runge) \cite{cheney08}.
+
+	\item \textbf{Regla de Simpson compuesta.} Para la aproximación de integrales definidas se utiliza la regla de Simpson compuesta con $N = 200$ subintervalos (por defecto). Como se demostró en la sección teórica, esta regla es exacta para polinomios de grado $\leq 3$, lo que le confiere un error de orden $O(h^4)$ donde $h$ es el ancho de cada subintervalo \cite{mathworld_simpson, burden02}. La fórmula implementada es:
+	\[
+	\int_a^b f(x)\,dx \approx \frac{h}{3}\left[f(x_0) + f(x_N) + 4\sum_{\substack{i=1 \\ i\text{ impar}}}^{N-1} f(x_i) + 2\sum_{\substack{i=2 \\ i\text{ par}}}^{N-2} f(x_i)\right].
+	\]
+\end{itemize}
 
 
 \bibliography{biblio}
