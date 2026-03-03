@@ -72,11 +72,11 @@ El presente informe aborda precisamente este problema: desarrollar las herramien
 \section*{Área entre dos curvas (funciones)}
 %----------------------------------------------------------
 
-Si $p_n$ es el polinomio interpolante construido con los nodos $(x_i, f(x_i))$, $i=0,1,\ldots,n$; para una cierta función $f$ continua en $[a,b] = [x_0,x_n]$, entonces resulta natural plantear la aproximación
+Si $p_n$ es el polinomio interpolante construido con los nodos $(x_i, f(x_i))$, $i=0,1,\ldots,n$; para una cierta función $f$ continua en $[a,b] = [x_0,x_n]$, tiene sentido plantear la aproximación
 \[
 \int_a^b f(x)\,dx \approx \int_a^b p_n(x)\,dx = I_n(f),
 \]
-donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Esta idea constituye la base de la integración numérica: sustituir la función original por un polinomio cuya integral sea calculable de forma explícita \cite{cheney08}. A continuación se abordan los requerimientos teóricos asociados a esta estrategia.
+donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, esa es la idea central de la integración numérica: cambiar la función original por un polinomio cuya integral sí se pueda calcular de forma directa \cite{cheney08}. A continuación se abordan los requerimientos teóricos asociados a esta estrategia.
 
 %----------------------------------------------------------
 \subsection*{Requerimientos teóricos}
@@ -193,7 +193,7 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Esta idea consti
 \section*{Área entre dos curvas cerradas (relaciones)}
 %----------------------------------------------------------
 
-Como se mencionó en la motivación, una curva de nivel no es necesariamente el gráfico de una función; se trata más bien de una figura cerrada en el plano. Para abordar el cálculo de áreas en este contexto, es necesario recurrir a herramientas del cálculo vectorial, en particular al \textbf{teorema de Green} y al concepto de \textbf{integral de línea} \cite{stewart12}.
+Como se mencionó en la motivación, una curva de nivel no es necesariamente el gráfico de una función; se trata más bien de una figura cerrada en el plano. Para abordar el cálculo de áreas en este contexto, se requieren herramientas del cálculo vectorial, en particular el \textbf{teorema de Green} y el concepto de \textbf{integral de línea} \cite{stewart12}.
 
 \subsection*{Requerimientos teóricos}
 
@@ -245,7 +245,7 @@ Como se mencionó en la motivación, una curva de nivel no es necesariamente el 
 	%==== ITEM 3 ====
 	\item \textbf{Integración numérica en este contexto.}
 
-	Una vez obtenidas las funciones interpolantes $x(t)$ e $y(t)$ --- ya sea mediante polinomios de Lagrange por trozos o \textit{splines} --- se requiere calcular la integral (\ref{eq:area_param}). Para ello se puede emplear cualquier regla de cuadratura; en particular, la \textbf{regla de Simpson compuesta} resulta adecuada por su buen compromiso entre sencillez y precisión \cite{burden02}. El integrando es
+	Una vez obtenidas las funciones interpolantes $x(t)$ e $y(t)$ --- ya sea mediante polinomios de Lagrange por trozos o \textit{splines} --- se requiere calcular la integral (\ref{eq:area_param}). Para ello se puede emplear cualquier regla de cuadratura; en particular, la \textbf{regla de Simpson compuesta} ofrece un buen balance entre sencillez y precisión \cite{burden02}. El integrando es
 	\[
 	h(t) = x(t)\,y'(t) - y(t)\,x'(t),
 	\]
@@ -278,6 +278,8 @@ En la implementación computacional se utilizan los siguientes métodos numéric
 	\[
 	\int_a^b f(x)\,dx \approx \frac{h}{3}\left[f(x_0) + f(x_N) + 4\sum_{\substack{i=1 \\ i\text{ impar}}}^{N-1} f(x_i) + 2\sum_{\substack{i=2 \\ i\text{ par}}}^{N-2} f(x_i)\right].
 	\]
+
+	\item \textbf{Interfaz gráfica.} Para facilitar la interacción con el usuario (carga de imágenes, selección de nodos mediante clicks y visualización de resultados), ambas aplicaciones se desarrollaron con Tkinter \cite{tkinter}, la biblioteca estándar de Python para interfaces gráficas.
 \end{itemize}
 
 
