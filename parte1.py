@@ -154,7 +154,7 @@ class AppParte1:
         self._separador(panel)
 
         tk.Label(panel, text="Modo de click", font=("Arial", 9, "bold")).pack(anchor=tk.W)
-        self.var_modo = tk.StringVar(value="nodos")
+        self.var_modo = tk.StringVar(value="limites")
         fr_modo = tk.Frame(panel)
         fr_modo.pack(fill=tk.X)
         tk.Radiobutton(fr_modo, text="Colocar nodos",
@@ -221,6 +221,8 @@ class AppParte1:
 
         self.lbl_info = tk.Label(panel, text="", font=("Arial", 8), fg="gray40")
         self.lbl_info.pack(side=tk.BOTTOM, pady=4)
+
+        self._actualizar_modo()
 
     def _separador(self, parent):
         tk.Frame(parent, height=2, bg="gray70").pack(fill=tk.X, pady=6)
@@ -300,20 +302,6 @@ class AppParte1:
         px = self.lim_px_a + (x - self.a) / (self.b - self.a) * dx
         py = self.lim_px_d + (self.d - y) / (self.d - self.c) * dy
         return px, py
-
-    def _fijar_valores(self):
-        try:
-            self.a = float(self.entries_lim["a"].get())
-            self.b = float(self.entries_lim["b"].get())
-            self.c = float(self.entries_lim["c"].get())
-            self.d = float(self.entries_lim["d"].get())
-            self.f_interp = None
-            self.g_interp = None
-            self.lbl_resultado.config(text="Area: ---")
-            self._redibujar()
-            messagebox.showinfo("Listo", f"Dominio: [{self.a}, {self.b}] x [{self.c}, {self.d}]")
-        except ValueError:
-            messagebox.showerror("Error", "Ingrese valores numericos validos")
 
     def _click(self, event):
         if self.imagen_pil is None:
