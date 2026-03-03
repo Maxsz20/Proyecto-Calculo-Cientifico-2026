@@ -29,7 +29,7 @@ def interpolante_por_trozos(nodos_dict, divisiones, a, b):
             return None
         nodos_prep[k] = list(nodos_dict[k])
 
-    for idx, d in enumerate(divisiones):
+    for idx, d in enumerate(sorted(divisiones)):
         k_izq = idx
         k_der = idx + 1
         ancho_min = min(limites[k_izq+1] - limites[k_izq],
@@ -118,8 +118,15 @@ class AppParte1:
         self.a, self.b = 0.0, 10.0
         self.c, self.d = 0.0, 10.0
 
-        self.nodos_f = {}
-        self.nodos_g = {}
+        self.lim_px_a = None
+        self.lim_px_b = None
+        self.lim_px_c = None
+        self.lim_px_d = None
+
+        self.nodos_f_px = []
+        self.nodos_g_px = []
+        self.divisiones_f_px = []
+        self.divisiones_g_px = []
         self.f_interp = None
         self.g_interp = None
 
@@ -133,64 +140,68 @@ class AppParte1:
 
         tk.Button(panel, text="Cargar imagen", command=self._cargar_imagen).pack(fill=tk.X, pady=3)
 
-        sep1 = tk.Frame(panel, height=2, bg="gray70")
-        sep1.pack(fill=tk.X, pady=6)
-
-        tk.Label(panel, text="Limites del dominio", font=("Arial", 9, "bold")).pack(anchor=tk.W)
-        fr_lim = tk.Frame(panel)
-        fr_lim.pack(fill=tk.X, pady=2)
-
-        self.entries_lim = {}
-        for i, (nombre, valor) in enumerate([("a", "0"), ("b", "10"), ("c", "0"), ("d", "10")]):
-            tk.Label(fr_lim, text=f"{nombre}=").grid(row=i//2, column=(i%2)*2, sticky=tk.E)
-            e = tk.Entry(fr_lim, width=8)
-            e.grid(row=i//2, column=(i%2)*2+1, padx=2, pady=1)
-            e.insert(0, valor)
-            self.entries_lim[nombre] = e
-
-        tk.Button(panel, text="Fijar limites", command=self._fijar_limites).pack(fill=tk.X, pady=3)
-
-        sep2 = tk.Frame(panel, height=2, bg="gray70")
-        sep2.pack(fill=tk.X, pady=6)
+        self._separador(panel)
 
         tk.Label(panel, text="Curva activa", font=("Arial", 9, "bold")).pack(anchor=tk.W)
         self.var_curva = tk.StringVar(value="f")
         fr_curva = tk.Frame(panel)
         fr_curva.pack(fill=tk.X)
-        tk.Radiobutton(fr_curva, text="f (azul)", variable=self.var_curva,
+        tk.Radiobutton(fr_curva, text="curva f", variable=self.var_curva,
                         value="f", fg="blue").pack(side=tk.LEFT)
-        tk.Radiobutton(fr_curva, text="g (verde)", variable=self.var_curva,
+        tk.Radiobutton(fr_curva, text="curva g", variable=self.var_curva,
                         value="g", fg="#008040").pack(side=tk.LEFT)
 
-        sep3 = tk.Frame(panel, height=2, bg="gray70")
-        sep3.pack(fill=tk.X, pady=6)
+        self._separador(panel)
 
-        tk.Label(panel, text="Divisiones de [a,b]", font=("Arial", 9, "bold")).pack(anchor=tk.W)
-        tk.Label(panel, text="Para f (ej: 3.5, 7):").pack(anchor=tk.W)
-        self.entry_div_f = tk.Entry(panel, width=22)
-        self.entry_div_f.pack(fill=tk.X, pady=1)
-        tk.Label(panel, text="Para g (ej: 5):").pack(anchor=tk.W)
-        self.entry_div_g = tk.Entry(panel, width=22)
-        self.entry_div_g.pack(fill=tk.X, pady=1)
+        tk.Label(panel, text="Modo de click", font=("Arial", 9, "bold")).pack(anchor=tk.W)
+        self.var_modo = tk.StringVar(value="nodos")
+        fr_modo = tk.Frame(panel)
+        fr_modo.pack(fill=tk.X)
+        tk.Radiobutton(fr_modo, text="Colocar nodos",
+                        variable=self.var_modo, value="nodos",
+                        command=self._actualizar_modo).pack(anchor=tk.W)
+        tk.Radiobutton(fr_modo, text="Colocar divisiones de tramo (max 2)",
+                        variable=self.var_modo, value="divisiones",
+                        fg="#FF6600", command=self._actualizar_modo).pack(anchor=tk.W)
+        tk.Radiobutton(fr_modo, text="Fijar limites en imagen",
+                        variable=self.var_modo, value="limites",
+                        fg="#CC0000", command=self._actualizar_modo).pack(anchor=tk.W)
 
-        tk.Label(panel, text="Subintervalo activo:", font=("Arial", 9, "bold")).pack(anchor=tk.W, pady=(6,0))
-        self.var_subint = tk.IntVar(value=0)
-        fr_sub = tk.Frame(panel)
-        fr_sub.pack(fill=tk.X)
-        for i in range(3):
-            tk.Radiobutton(fr_sub, text=f"Tramo {i}", variable=self.var_subint,
-                            value=i).pack(side=tk.LEFT)
+        self.fr_limite_sel = tk.Frame(panel)
+        self.fr_limite_sel.pack(fill=tk.X, pady=2)
 
-        sep4 = tk.Frame(panel, height=2, bg="gray70")
-        sep4.pack(fill=tk.X, pady=6)
+        self.var_limite = tk.StringVar(value="a")
 
-        tk.Button(panel, text="Deshacer ultimo nodo",
+        tk.Label(self.fr_limite_sel, text="Eje X:", font=("Arial", 8, "bold")).grid(
+            row=0, column=0, sticky=tk.W, padx=(10, 2))
+        tk.Radiobutton(self.fr_limite_sel, text="a (izq)", variable=self.var_limite,
+                        value="a", fg="#CC0000", font=("Arial", 8),
+                        command=self._actualizar_lbl_limite).grid(row=0, column=1)
+        tk.Radiobutton(self.fr_limite_sel, text="b (der)", variable=self.var_limite,
+                        value="b", fg="#CC0000", font=("Arial", 8),
+                        command=self._actualizar_lbl_limite).grid(row=0, column=2)
+
+        tk.Label(self.fr_limite_sel, text="Eje Y:", font=("Arial", 8, "bold")).grid(
+            row=1, column=0, sticky=tk.W, padx=(10, 2))
+        tk.Radiobutton(self.fr_limite_sel, text="c (inf)", variable=self.var_limite,
+                        value="c", fg="#CC0000", font=("Arial", 8),
+                        command=self._actualizar_lbl_limite).grid(row=1, column=1)
+        tk.Radiobutton(self.fr_limite_sel, text="d (sup)", variable=self.var_limite,
+                        value="d", fg="#CC0000", font=("Arial", 8),
+                        command=self._actualizar_lbl_limite).grid(row=1, column=2)
+
+        self.lbl_modo = tk.Label(panel, text="Click = colocar nodo sobre la curva",
+                                  font=("Arial", 8), fg="gray40")
+        self.lbl_modo.pack(anchor=tk.W, pady=2)
+
+        self._separador(panel)
+
+        tk.Button(panel, text="Deshacer ultimo",
                   command=self._deshacer).pack(fill=tk.X, pady=2)
         tk.Button(panel, text="Limpiar curva activa",
                   command=self._limpiar).pack(fill=tk.X, pady=2)
 
-        sep5 = tk.Frame(panel, height=2, bg="gray70")
-        sep5.pack(fill=tk.X, pady=6)
+        self._separador(panel)
 
         tk.Button(panel, text="CALCULAR AREA", command=self._calcular,
                   bg="#2E7D32", fg="white", font=("Arial", 10, "bold")).pack(fill=tk.X, pady=4)
@@ -202,16 +213,40 @@ class AppParte1:
         tk.Button(panel, text="Ver graficas",
                   command=self._mostrar_graficas).pack(fill=tk.X, pady=2)
 
+        self.lbl_estado = tk.Label(panel, text="f: 0 nodos, 0 div | g: 0 nodos, 0 div",
+                                    font=("Arial", 8), fg="gray40")
+        self.lbl_estado.pack(side=tk.BOTTOM, pady=2)
+
         self.lbl_info = tk.Label(panel, text="", font=("Arial", 8), fg="gray40")
         self.lbl_info.pack(side=tk.BOTTOM, pady=4)
+
+    def _separador(self, parent):
+        tk.Frame(parent, height=2, bg="gray70").pack(fill=tk.X, pady=6)
+
+    def _actualizar_modo(self):
+        modo = self.var_modo.get()
+        if modo == "divisiones":
+            self.lbl_modo.config(
+                text="Click = colocar division de tramo en la imagen",
+                fg="#FF6600")
+        elif modo == "limites":
+            self._actualizar_lbl_limite()
+        else:
+            self.lbl_modo.config(
+                text="Click = colocar nodo sobre la curva",
+                fg="gray40")
+
+    def _actualizar_lbl_limite(self):
+        cual = self.var_limite.get()
+        nombres = {"a": "a (vertical izq)", "b": "b (vertical der)",
+                    "c": "c (horizontal inf)", "d": "d (horizontal sup)"}
+        self.lbl_modo.config(text=f"Click para fijar {nombres[cual]}", fg="#CC0000")
 
     def _crear_canvas(self):
         self.canvas = tk.Canvas(self.master, bg="#2b2b2b")
         self.canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.canvas.bind("<Button-1>", self._click)
         self.canvas.bind("<Motion>", self._movimiento)
-
-    # ---- IMAGEN ----
 
     def _cargar_imagen(self):
         ruta = filedialog.askopenfilename(
@@ -234,28 +269,46 @@ class AppParte1:
         self.offset_x = (cw - self.img_w) // 2
         self.offset_y = (ch - self.img_h) // 2
 
+        self.lim_px_a = self.offset_x
+        self.lim_px_b = self.offset_x + self.img_w
+        self.lim_px_c = self.offset_y + self.img_h
+        self.lim_px_d = self.offset_y
+
         self.imagen_pil = img
         self.imagen_tk = ImageTk.PhotoImage(img)
         self.canvas.delete("all")
         self.canvas.create_image(self.offset_x, self.offset_y,
                                   anchor=tk.NW, image=self.imagen_tk, tags="img")
+        self._redibujar()
 
     def _pixel_a_coord(self, px, py):
-        x = self.a + (px - self.offset_x) / self.img_w * (self.b - self.a)
-        y = self.d - (py - self.offset_y) / self.img_h * (self.d - self.c)
+        dx = self.lim_px_b - self.lim_px_a
+        dy = self.lim_px_c - self.lim_px_d
+        if abs(dx) < 1:
+            dx = 1
+        if abs(dy) < 1:
+            dy = 1
+        x = self.a + (px - self.lim_px_a) / dx * (self.b - self.a)
+        y = self.d - (py - self.lim_px_d) / dy * (self.d - self.c)
         return x, y
 
     def _coord_a_pixel(self, x, y):
-        px = self.offset_x + (x - self.a) / (self.b - self.a) * self.img_w
-        py = self.offset_y + (self.d - y) / (self.d - self.c) * self.img_h
+        dx = self.lim_px_b - self.lim_px_a
+        dy = self.lim_px_c - self.lim_px_d
+        px = self.lim_px_a + (x - self.a) / (self.b - self.a) * dx
+        py = self.lim_px_d + (self.d - y) / (self.d - self.c) * dy
         return px, py
 
-    def _fijar_limites(self):
+    def _fijar_valores(self):
         try:
             self.a = float(self.entries_lim["a"].get())
             self.b = float(self.entries_lim["b"].get())
             self.c = float(self.entries_lim["c"].get())
             self.d = float(self.entries_lim["d"].get())
+            self.f_interp = None
+            self.g_interp = None
+            self.lbl_resultado.config(text="Area: ---")
+            self._redibujar()
             messagebox.showinfo("Listo", f"Dominio: [{self.a}, {self.b}] x [{self.c}, {self.d}]")
         except ValueError:
             messagebox.showerror("Error", "Ingrese valores numericos validos")
@@ -263,48 +316,171 @@ class AppParte1:
     def _click(self, event):
         if self.imagen_pil is None:
             return
-        x, y = self._pixel_a_coord(event.x, event.y)
-        if x < self.a or x > self.b or y < self.c or y > self.d:
+        if (event.x < self.offset_x or event.x > self.offset_x + self.img_w or
+                event.y < self.offset_y or event.y > self.offset_y + self.img_h):
+            return
+
+        modo = self.var_modo.get()
+
+        if modo == "limites":
+            cual = self.var_limite.get()
+            if cual == "a":
+                self.lim_px_a = event.x
+            elif cual == "b":
+                self.lim_px_b = event.x
+            elif cual == "c":
+                self.lim_px_c = event.y
+            elif cual == "d":
+                self.lim_px_d = event.y
+            self._redibujar()
+            return
+
+        if modo == "divisiones":
+            curva = self.var_curva.get()
+            divisiones = self.divisiones_f_px if curva == "f" else self.divisiones_g_px
+            nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
+            if len(divisiones) >= 2:
+                messagebox.showinfo("", "Maximo 2 divisiones por curva (3 tramos)")
+                return
+            div_px = event.x
+            div_py = event.y
+            divisiones.append((div_px, div_py))
+            if not any(abs(px - div_px) <= 2 for (px, _) in nodos):
+                nodos.append((div_px, div_py))
+        else:
+            curva = self.var_curva.get()
+            nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
+            divisiones = self.divisiones_f_px if curva == "f" else self.divisiones_g_px
+            px_click = event.x
+            for div_px, _ in divisiones:
+                if abs(px_click - div_px) <= 5:
+                    px_click = div_px
+                    break
+            nodos.append((px_click, event.y))
+
+        self._redibujar()
+
+    def _deshacer(self):
+        modo = self.var_modo.get()
+
+        if modo == "limites":
+            cual = self.var_limite.get()
+            if cual == "a":
+                self.lim_px_a = self.offset_x
+            elif cual == "b":
+                self.lim_px_b = self.offset_x + self.img_w
+            elif cual == "c":
+                self.lim_px_c = self.offset_y + self.img_h
+            elif cual == "d":
+                self.lim_px_d = self.offset_y
+            self._redibujar()
             return
 
         curva = self.var_curva.get()
-        subint = self.var_subint.get()
-        nodos = self.nodos_f if curva == "f" else self.nodos_g
+        if modo == "divisiones":
+            divisiones = self.divisiones_f_px if curva == "f" else self.divisiones_g_px
+            nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
+            if divisiones:
+                div_px, div_py = divisiones.pop()
+                for i in range(len(nodos) - 1, -1, -1):
+                    px, py = nodos[i]
+                    if abs(px - div_px) <= 2 and abs(py - div_py) <= 6:
+                        nodos.pop(i)
+                        break
+        else:
+            nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
+            if nodos:
+                nodos.pop()
 
-        if subint not in nodos:
-            nodos[subint] = []
-        nodos[subint].append((x, y))
-        self._redibujar_nodos()
-
-    def _deshacer(self):
-        curva = self.var_curva.get()
-        subint = self.var_subint.get()
-        nodos = self.nodos_f if curva == "f" else self.nodos_g
-        if subint in nodos and nodos[subint]:
-            nodos[subint].pop()
-        self._redibujar_nodos()
+        self._redibujar()
 
     def _limpiar(self):
-        curva = self.var_curva.get()
-        if curva == "f":
-            self.nodos_f.clear()
+        if self.var_curva.get() == "f":
+            self.nodos_f_px.clear()
+            self.divisiones_f_px.clear()
         else:
-            self.nodos_g.clear()
-        self._redibujar_nodos()
+            self.nodos_g_px.clear()
+            self.divisiones_g_px.clear()
+        self._redibujar()
 
-    def _redibujar_nodos(self):
+    def _redibujar(self):
         self.canvas.delete("nodo")
-        pares = [("f", self.nodos_f, "#4488FF"), ("g", self.nodos_g, "#00CC66")]
+        self.canvas.delete("division")
+        self.canvas.delete("limite")
+
+        if self.lim_px_a is not None:
+            self.canvas.create_line(self.lim_px_a, self.offset_y,
+                                    self.lim_px_a, self.offset_y + self.img_h,
+                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.lim_px_a - 4, self.offset_y + self.img_h // 2 - 4,
+                                    self.lim_px_a + 4, self.offset_y + self.img_h // 2 + 4,
+                                    fill="#FF0000", outline="white", width=1, tags="limite")
+            self.canvas.create_text(self.lim_px_a, self.offset_y - 12,
+                                    text=f"a={self.a:.1f}", fill="#FF0000",
+                                    font=("Consolas", 8, "bold"), tags="limite")
+
+        if self.lim_px_b is not None:
+            self.canvas.create_line(self.lim_px_b, self.offset_y,
+                                    self.lim_px_b, self.offset_y + self.img_h,
+                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.lim_px_b - 4, self.offset_y + self.img_h // 2 - 4,
+                                    self.lim_px_b + 4, self.offset_y + self.img_h // 2 + 4,
+                                    fill="#FF0000", outline="white", width=1, tags="limite")
+            self.canvas.create_text(self.lim_px_b, self.offset_y - 12,
+                                    text=f"b={self.b:.1f}", fill="#FF0000",
+                                    font=("Consolas", 8, "bold"), tags="limite")
+
+        if self.lim_px_c is not None:
+            self.canvas.create_line(self.offset_x, self.lim_px_c,
+                                    self.offset_x + self.img_w, self.lim_px_c,
+                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 4, self.lim_px_c - 4,
+                                    self.offset_x + self.img_w // 2 + 4, self.lim_px_c + 4,
+                                    fill="#FF0000", outline="white", width=1, tags="limite")
+            self.canvas.create_text(self.offset_x - 5, self.lim_px_c,
+                                    text=f"c={self.c:.1f}", fill="#FF0000",
+                                    font=("Consolas", 8, "bold"), anchor=tk.E, tags="limite")
+
+        if self.lim_px_d is not None:
+            self.canvas.create_line(self.offset_x, self.lim_px_d,
+                                    self.offset_x + self.img_w, self.lim_px_d,
+                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 4, self.lim_px_d - 4,
+                                    self.offset_x + self.img_w // 2 + 4, self.lim_px_d + 4,
+                                    fill="#FF0000", outline="white", width=1, tags="limite")
+            self.canvas.create_text(self.offset_x - 5, self.lim_px_d,
+                                    text=f"d={self.d:.1f}", fill="#FF0000",
+                                    font=("Consolas", 8, "bold"), anchor=tk.E, tags="limite")
+
+        for curva, divisiones, nodos in [("f", self.divisiones_f_px, self.nodos_f_px),
+                                          ("g", self.divisiones_g_px, self.nodos_g_px)]:
+            color_div = "#FF8800" if curva == "f" else "#FFAA00"
+            
+            for div_px, div_py in divisiones:
+                py_top = max(self.offset_y, div_py - 30)
+                py_bot = min(self.offset_y + self.img_h, div_py + 30)
+
+                self.canvas.create_line(div_px, py_top, div_px, py_bot,
+                                        fill=color_div, width=2, dash=(5, 3), tags="division")
+                x_dom, _ = self._pixel_a_coord(div_px, 0)
+                self.canvas.create_text(div_px, py_top - 10,
+                                        text=f"{curva} div ({x_dom:.2f})",
+                                        fill=color_div, font=("Consolas", 7), tags="division")
+
+        pares = [("f", self.nodos_f_px, "#4488FF"), ("g", self.nodos_g_px, "#00CC66")]
         for nombre, nodos, color in pares:
-            for subint, puntos in nodos.items():
-                for (x, y) in puntos:
-                    px, py = self._coord_a_pixel(x, y)
-                    r = 4
-                    self.canvas.create_oval(px-r, py-r, px+r, py+r,
-                                            fill=color, outline="white", width=1, tags="nodo")
-                    self.canvas.create_text(px+10, py-10,
-                                            text=f"({x:.2f}, {y:.2f})",
-                                            fill=color, font=("Consolas", 7), tags="nodo")
+            for (px, py) in nodos:
+                r = 4
+                self.canvas.create_oval(px-r, py-r, px+r, py+r,
+                                        fill=color, outline="white", width=1, tags="nodo")
+                x_dom, y_dom = self._pixel_a_coord(px, py)
+                self.canvas.create_text(px+10, py-10,
+                                        text=f"({x_dom:.2f}, {y_dom:.2f})",
+                                        fill=color, font=("Consolas", 7), tags="nodo")
+
+        self.lbl_estado.config(
+            text=f"f: {len(self.nodos_f_px)} nodos, {len(self.divisiones_f_px)} div | "
+                 f"g: {len(self.nodos_g_px)} nodos, {len(self.divisiones_g_px)} div")
 
     def _movimiento(self, event):
         if self.imagen_pil is None:
@@ -312,22 +488,33 @@ class AppParte1:
         x, y = self._pixel_a_coord(event.x, event.y)
         self.lbl_info.config(text=f"x = {x:.3f}   y = {y:.3f}")
 
-    def _parsear_divisiones(self, entry):
-        texto = entry.get().strip()
-        if not texto:
-            return []
-        return sorted([float(v.strip()) for v in texto.split(",")])
+    def _convertir_a_dominio(self):
+        nf = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_f_px]
+        ng = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_g_px]
+        df = sorted([self._pixel_a_coord(dpx, 0)[0] for (dpx, _) in self.divisiones_f_px])
+        dg = sorted([self._pixel_a_coord(dpx, 0)[0] for (dpx, _) in self.divisiones_g_px])
+        return nf, ng, df, dg
+
+    def _asignar_tramos(self, nodos_dom, divisiones_dom):
+        limites = [self.a] + divisiones_dom + [self.b]
+        nodos_dict = {}
+        for k in range(len(limites) - 1):
+            nodos_dict[k] = []
+        for (x, y) in nodos_dom:
+            for k in range(len(limites) - 1):
+                if limites[k] - 1e-10 <= x <= limites[k+1] + 1e-10:
+                    nodos_dict[k].append((x, y))
+                    break
+        return nodos_dict
 
     def _calcular(self):
-        try:
-            div_f = self._parsear_divisiones(self.entry_div_f)
-            div_g = self._parsear_divisiones(self.entry_div_g)
-        except ValueError:
-            messagebox.showerror("Error", "Formato de divisiones invalido")
-            return
+        nf, ng, df, dg = self._convertir_a_dominio()
 
-        self.f_interp = interpolante_por_trozos(self.nodos_f, div_f, self.a, self.b)
-        self.g_interp = interpolante_por_trozos(self.nodos_g, div_g, self.a, self.b)
+        nodos_dict_f = self._asignar_tramos(nf, df)
+        nodos_dict_g = self._asignar_tramos(ng, dg)
+
+        self.f_interp = interpolante_por_trozos(nodos_dict_f, df, self.a, self.b)
+        self.g_interp = interpolante_por_trozos(nodos_dict_g, dg, self.a, self.b)
 
         if self.f_interp is None:
             messagebox.showerror("Error",
@@ -339,12 +526,14 @@ class AppParte1:
             return
 
         area = area_entre_curvas(self.f_interp, self.g_interp, self.a, self.b)
-        self.lbl_resultado.config(text=f"Area ≈ {area:.6f}")
+        self.lbl_resultado.config(text=f"Area ~ {area:.6f}")
 
     def _mostrar_graficas(self):
         if self.f_interp is None or self.g_interp is None:
             messagebox.showinfo("", "Primero calcule el area")
             return
+
+        nf, ng, df, dg = self._convertir_a_dominio()
 
         xs = np.linspace(self.a, self.b, 500)
         yf = np.array([self.f_interp(x) for x in xs])
@@ -355,31 +544,22 @@ class AppParte1:
         ax.plot(xs, yg, color="#00CC66", linewidth=2, label="g interpolada")
         ax.fill_between(xs, yf, yg, alpha=0.25, color="orange", label="Area")
 
-        for nombre, nodos, color in [("f", self.nodos_f, "#4488FF"),
-                                      ("g", self.nodos_g, "#00CC66")]:
-            for subint, puntos in nodos.items():
-                xp = [p[0] for p in puntos]
-                yp = [p[1] for p in puntos]
-                ax.plot(xp, yp, "o", color=color, markersize=5)
+        xp_f = [p[0] for p in nf]
+        yp_f = [p[1] for p in nf]
+        xp_g = [p[0] for p in ng]
+        yp_g = [p[1] for p in ng]
+        ax.plot(xp_f, yp_f, "o", color="#4488FF", markersize=5)
+        ax.plot(xp_g, yp_g, "o", color="#00CC66", markersize=5)
 
-        try:
-            div_f = self._parsear_divisiones(self.entry_div_f)
-        except ValueError:
-            div_f = []
-        try:
-            div_g = self._parsear_divisiones(self.entry_div_g)
-        except ValueError:
-            div_g = []
-
-        divisiones_todas = sorted(set(div_f + div_g))
-        for d in divisiones_todas:
+        for d in df:
             ax.axvline(x=d, color="#FF6600", linewidth=1, linestyle="--", alpha=0.6)
-            yf_d = self.f_interp(d)
-            yg_d = self.g_interp(d)
-            ax.plot(d, yf_d, "D", color="#FF6600", markersize=6, zorder=5)
-            ax.plot(d, yg_d, "D", color="#FF6600", markersize=6, zorder=5)
+            ax.plot(d, self.f_interp(d), "D", color="#FF6600", markersize=6, zorder=5)
 
-        if divisiones_todas:
+        for d in dg:
+            ax.axvline(x=d, color="#CC9900", linewidth=1, linestyle="--", alpha=0.6)
+            ax.plot(d, self.g_interp(d), "D", color="#CC9900", markersize=6, zorder=5)
+
+        if df or dg:
             ax.plot([], [], "D", color="#FF6600", markersize=6, label="Divisiones")
 
         ax.set_xlabel("x")
