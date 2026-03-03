@@ -196,10 +196,12 @@ class AppParte1:
 
         self._separador(panel)
 
-        tk.Button(panel, text="Deshacer ultimo",
+        tk.Button(panel, text="Deshacer ultimo cambio",
                   command=self._deshacer).pack(fill=tk.X, pady=2)
         tk.Button(panel, text="Limpiar curva activa",
                   command=self._limpiar).pack(fill=tk.X, pady=2)
+        tk.Button(panel, text="Limpiar todo",
+                  command=self._limpiar_todo).pack(fill=tk.X, pady=2)
 
         self._separador(panel)
 
@@ -401,6 +403,17 @@ class AppParte1:
         else:
             self.nodos_g_px.clear()
             self.divisiones_g_px.clear()
+        self._redibujar()
+
+    def _limpiar_todo(self):
+        self.nodos_c1_px.clear()
+        self.nodos_c2_px.clear()
+        self.area_c1 = None
+        self.area_c2 = None
+        self.area_entre = None
+        self.lbl_area_c1.config(text="Area C1: ---")
+        self.lbl_area_c2.config(text="Area C2: ---")
+        self.lbl_resultado.config(text="Area entre curvas: ---")
         self._redibujar()
 
     def _redibujar(self):
