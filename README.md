@@ -31,8 +31,9 @@ Este proyecto tiene dos aplicaciones en Python con interfaz grafica para estimar
 - **Parte 1** trabaja directamente en pixeles:
   - nodos y divisiones se toman en `(px, py)`,
   - el resultado de area se reporta en `px^2`.
-- **Parte 2** convierte pixeles a dominio real usando `a,b,c,d`:
-  - el resultado de area se reporta en `u^2` (o en la unidad real al cuadrado, si el dominio tiene unidad fisica).
+- **Parte 2** tambien trabaja directamente en pixeles:
+  - nodos se toman en `(px, py)`,
+  - el resultado de area se reporta en `px^2`.
 
 ## Guia de uso de la UI - Parte 1
 
@@ -59,24 +60,23 @@ Nota:
 
 1. Abrir `parte2.py`.
 2. Pulsar **Cargar imagen**.
-3. En **Valores del dominio**, colocar `a,b,c,d` y pulsar **Fijar valores**.
-4. Antes de poner nodos, en modo **Fijar limites en imagen**, marcar `a,b,c,d` como en Parte 1.
-5. Seleccionar curva activa:
+3. Antes de poner nodos, en modo **Fijar limites en imagen**, marcar `a,b,c,d` como referencia visual.
+4. Seleccionar curva activa:
    - `C1 exterior (azul)`,
    - `C2 interior (rojo)`.
-6. En modo **Colocar nodos**, marcar nodos alrededor de cada curva cerrada.
-7. Elegir metodo:
+5. En modo **Colocar nodos**, marcar nodos alrededor de cada curva cerrada.
+6. Elegir metodo:
    - **Lagrange por trozos**
    - **Shoelace (poligonal)**
-8. Pulsar **CALCULAR AREA**.
-9. Leer:
+7. Pulsar **CALCULAR AREA**.
+8. Leer:
    - `Area C1`,
    - `Area C2`,
    - `Area entre curvas = |Area C1 - Area C2|`.
-10. (Opcional) **Ver graficas** para inspeccion visual.
+9. (Opcional) **Ver graficas** para inspeccion visual.
 
 Notas:
 
 - Se necesitan al menos 3 nodos por curva cerrada.
 - Conviene mantener orden consistente al marcar nodos.
-- El resultado se reporta en `u^2`.
+- El resultado se reporta en `px^2`.

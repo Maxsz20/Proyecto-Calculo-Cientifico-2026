@@ -20,6 +20,7 @@ def evaluar_lagrange(tn, vn, t):
 
 
 def derivada_lagrange(tn, vn, t):
+    # Derivada del interpolante de Lagrange en el parametro t.
     n = len(tn)
     resultado = 0.0
     for i in range(n):
@@ -45,6 +46,7 @@ def simpson(f, a, b, n=200):
     return h / 3.0 * (y[0] + y[-1] + 4.0 * np.sum(y[1:-1:2]) + 2.0 * np.sum(y[2:-2:2]))
 
 def area_integral_linea(puntos, grado=3, ns_seg=60):
+    # Parametrizacion local por ventanas y calculo de area via Green
     n = len(puntos)
     if n < 3:
         return 0.0
@@ -80,6 +82,7 @@ def area_integral_linea(puntos, grado=3, ns_seg=60):
 
 
 def shoelace(puntos):
+    # Area poligonal directa por formula del cordon
     n = len(puntos)
     if n < 3:
         return 0.0
@@ -104,9 +107,6 @@ class AppParte2:
         self.offset_x = 0
         self.offset_y = 0
 
-        self.a, self.b = 0.0, 10.0
-        self.c, self.d = 0.0, 10.0
-
         self.lim_px_a = None
         self.lim_px_b = None
         self.lim_px_c = None
@@ -118,6 +118,9 @@ class AppParte2:
         self.area_c2 = None
         self.area_entre = None
         self.metodo_usado = "trozos"
+        self.max_zoom_imagen = 1.6
+        self.factor_llenado_canvas = 0.96
+        self.radio_nodo_px = 6
 
         self._crear_panel()
         self._crear_canvas()
@@ -131,19 +134,9 @@ class AppParte2:
 
         self._separador(panel)
 
-        tk.Label(panel, text="Valores del dominio", font=("Arial", 9, "bold")).pack(anchor=tk.W)
-        fr_lim = tk.Frame(panel)
-        fr_lim.pack(fill=tk.X, pady=2)
-
-        self.entries_lim = {}
-        for i, (nombre, valor) in enumerate([("a", "0"), ("b", "10"), ("c", "0"), ("d", "10")]):
-            tk.Label(fr_lim, text=f"{nombre}=").grid(row=i//2, column=(i%2)*2, sticky=tk.E)
-            e = tk.Entry(fr_lim, width=8)
-            e.grid(row=i//2, column=(i%2)*2+1, padx=2, pady=1)
-            e.insert(0, valor)
-            self.entries_lim[nombre] = e
-
-        tk.Button(panel, text="Fijar valores", command=self._fijar_valores).pack(fill=tk.X, pady=3)
+        tk.Label(panel, text="Trabajo en pixeles", font=("Arial", 9, "bold")).pack(anchor=tk.W)
+        tk.Label(panel, text="Defina limites con clicks (a,b,c,d).",
+                 font=("Arial", 8), fg="gray40").pack(anchor=tk.W, pady=(0, 2))
 
         self._separador(panel)
 
@@ -221,13 +214,13 @@ class AppParte2:
         tk.Button(panel, text="CALCULAR AREA", command=self._calcular,
                   bg="#2E7D32", fg="white", font=("Arial", 10, "bold")).pack(fill=tk.X, pady=4)
 
-        self.lbl_area_c1 = tk.Label(panel, text="Area C1: ---",
+        self.lbl_area_c1 = tk.Label(panel, text="Area C1: --- px^2",
                                      font=("Arial", 9), fg="#1565C0")
         self.lbl_area_c1.pack(anchor=tk.W)
-        self.lbl_area_c2 = tk.Label(panel, text="Area C2: ---",
+        self.lbl_area_c2 = tk.Label(panel, text="Area C2: --- px^2",
                                      font=("Arial", 9), fg="#CC0000")
         self.lbl_area_c2.pack(anchor=tk.W)
-        self.lbl_resultado = tk.Label(panel, text="Area entre curvas: ---",
+        self.lbl_resultado = tk.Label(panel, text="Area entre curvas: --- px^2",
                                        font=("Arial", 11, "bold"), fg="#6A1B9A")
         self.lbl_resultado.pack(pady=6)
 
@@ -278,7 +271,10 @@ class AppParte2:
         if cw < 50:
             cw, ch = 850, 650
 
-        ratio = min(cw / img.width, ch / img.height, 1.0)
+        ratio = min(cw / img.width, ch / img.height)
+        ratio *= self.factor_llenado_canvas
+        ratio = min(ratio, self.max_zoom_imagen)
+        ratio = max(ratio, 0.05)
         self.img_w = int(img.width * ratio)
         self.img_h = int(img.height * ratio)
         img = img.resize((self.img_w, self.img_h), Image.LANCZOS)
@@ -299,39 +295,7 @@ class AppParte2:
         self._redibujar()
 
     def _pixel_a_coord(self, px, py):
-        dx = self.lim_px_b - self.lim_px_a
-        dy = self.lim_px_c - self.lim_px_d
-        if abs(dx) < 1:
-            dx = 1
-        if abs(dy) < 1:
-            dy = 1
-        x = self.a + (px - self.lim_px_a) / dx * (self.b - self.a)
-        y = self.d - (py - self.lim_px_d) / dy * (self.d - self.c)
-        return x, y
-
-    def _coord_a_pixel(self, x, y):
-        dx = self.lim_px_b - self.lim_px_a
-        dy = self.lim_px_c - self.lim_px_d
-        px = self.lim_px_a + (x - self.a) / (self.b - self.a) * dx
-        py = self.lim_px_d + (self.d - y) / (self.d - self.c) * dy
-        return px, py
-
-    def _fijar_valores(self):
-        try:
-            self.a = float(self.entries_lim["a"].get())
-            self.b = float(self.entries_lim["b"].get())
-            self.c = float(self.entries_lim["c"].get())
-            self.d = float(self.entries_lim["d"].get())
-            self.area_c1 = None
-            self.area_c2 = None
-            self.area_entre = None
-            self.lbl_area_c1.config(text="Area C1: ---")
-            self.lbl_area_c2.config(text="Area C2: ---")
-            self.lbl_resultado.config(text="Area entre curvas: ---")
-            self._redibujar()
-            messagebox.showinfo("Listo", f"Dominio: [{self.a}, {self.b}] x [{self.c}, {self.d}]")
-        except ValueError:
-            messagebox.showerror("Error", "Ingrese valores numericos validos")
+        return float(px), float(py)
 
     def _click(self, event):
         if self.imagen_pil is None:
@@ -393,9 +357,9 @@ class AppParte2:
         self.area_c1 = None
         self.area_c2 = None
         self.area_entre = None
-        self.lbl_area_c1.config(text="Area C1: ---")
-        self.lbl_area_c2.config(text="Area C2: ---")
-        self.lbl_resultado.config(text="Area entre curvas: ---")
+        self.lbl_area_c1.config(text="Area C1: --- px^2")
+        self.lbl_area_c2.config(text="Area C2: --- px^2")
+        self.lbl_resultado.config(text="Area entre curvas: --- px^2")
         self._redibujar()
 
     def _redibujar(self):
@@ -406,46 +370,46 @@ class AppParte2:
         if self.lim_px_a is not None:
             self.canvas.create_line(self.lim_px_a, self.offset_y,
                                     self.lim_px_a, self.offset_y + self.img_h,
-                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
-            self.canvas.create_oval(self.lim_px_a - 4, self.offset_y + self.img_h // 2 - 4,
-                                    self.lim_px_a + 4, self.offset_y + self.img_h // 2 + 4,
+                                    fill="#FF0000", width=3, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.lim_px_a - 6, self.offset_y + self.img_h // 2 - 6,
+                                    self.lim_px_a + 6, self.offset_y + self.img_h // 2 + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
-            self.canvas.create_text(self.lim_px_a, self.offset_y - 12,
-                                    text=f"a={self.a:.1f}", fill="#FF0000",
-                                    font=("Consolas", 8, "bold"), tags="limite")
+            self.canvas.create_text(self.lim_px_a, self.offset_y - 14,
+                                    text=f"a={self.lim_px_a:.1f}px", fill="#FF0000",
+                                    font=("Consolas", 10, "bold"), tags="limite")
 
         if self.lim_px_b is not None:
             self.canvas.create_line(self.lim_px_b, self.offset_y,
                                     self.lim_px_b, self.offset_y + self.img_h,
-                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
-            self.canvas.create_oval(self.lim_px_b - 4, self.offset_y + self.img_h // 2 - 4,
-                                    self.lim_px_b + 4, self.offset_y + self.img_h // 2 + 4,
+                                    fill="#FF0000", width=3, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.lim_px_b - 6, self.offset_y + self.img_h // 2 - 6,
+                                    self.lim_px_b + 6, self.offset_y + self.img_h // 2 + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
-            self.canvas.create_text(self.lim_px_b, self.offset_y - 12,
-                                    text=f"b={self.b:.1f}", fill="#FF0000",
-                                    font=("Consolas", 8, "bold"), tags="limite")
+            self.canvas.create_text(self.lim_px_b, self.offset_y - 14,
+                                    text=f"b={self.lim_px_b:.1f}px", fill="#FF0000",
+                                    font=("Consolas", 10, "bold"), tags="limite")
 
         if self.lim_px_c is not None:
             self.canvas.create_line(self.offset_x, self.lim_px_c,
                                     self.offset_x + self.img_w, self.lim_px_c,
-                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
-            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 4, self.lim_px_c - 4,
-                                    self.offset_x + self.img_w // 2 + 4, self.lim_px_c + 4,
+                                    fill="#FF0000", width=3, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 6, self.lim_px_c - 6,
+                                    self.offset_x + self.img_w // 2 + 6, self.lim_px_c + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
             self.canvas.create_text(self.offset_x - 5, self.lim_px_c,
-                                    text=f"c={self.c:.1f}", fill="#FF0000",
-                                    font=("Consolas", 8, "bold"), anchor=tk.E, tags="limite")
+                                    text=f"c={self.lim_px_c:.1f}px", fill="#FF0000",
+                                    font=("Consolas", 10, "bold"), anchor=tk.E, tags="limite")
 
         if self.lim_px_d is not None:
             self.canvas.create_line(self.offset_x, self.lim_px_d,
                                     self.offset_x + self.img_w, self.lim_px_d,
-                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
-            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 4, self.lim_px_d - 4,
-                                    self.offset_x + self.img_w // 2 + 4, self.lim_px_d + 4,
+                                    fill="#FF0000", width=3, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 6, self.lim_px_d - 6,
+                                    self.offset_x + self.img_w // 2 + 6, self.lim_px_d + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
             self.canvas.create_text(self.offset_x - 5, self.lim_px_d,
-                                    text=f"d={self.d:.1f}", fill="#FF0000",
-                                    font=("Consolas", 8, "bold"), anchor=tk.E, tags="limite")
+                                    text=f"d={self.lim_px_d:.1f}px", fill="#FF0000",
+                                    font=("Consolas", 10, "bold"), anchor=tk.E, tags="limite")
 
         pares = [("C1", self.nodos_c1_px, "#4488FF"), ("C2", self.nodos_c2_px, "#FF4444")]
         for nombre, nodos, color in pares:
@@ -453,25 +417,25 @@ class AppParte2:
                 continue
 
             for k, (px, py) in enumerate(nodos):
-                r = 4
+                r = self.radio_nodo_px
                 self.canvas.create_oval(px-r, py-r, px+r, py+r,
                                         fill=color, outline="white", width=1, tags="nodo")
                 self.canvas.create_text(px+12, py-10,
                                         text=f"{k}",
-                                        fill=color, font=("Consolas", 7), tags="nodo")
+                                        fill=color, font=("Consolas", 9), tags="nodo")
 
             if len(nodos) >= 2:
                 for k in range(len(nodos) - 1):
                     px1, py1 = nodos[k]
                     px2, py2 = nodos[k+1]
                     self.canvas.create_line(px1, py1, px2, py2,
-                                            fill=color, width=1, dash=(4, 3), tags="linea")
+                                            fill=color, width=2, dash=(4, 3), tags="linea")
 
                 if len(nodos) >= 3:
                     px1, py1 = nodos[-1]
                     px2, py2 = nodos[0]
                     self.canvas.create_line(px1, py1, px2, py2,
-                                            fill=color, width=1, dash=(2, 4), tags="linea")
+                                            fill=color, width=2, dash=(2, 4), tags="linea")
 
         self.lbl_nodos.config(
             text=f"C1: {len(self.nodos_c1_px)} nodos | C2: {len(self.nodos_c2_px)} nodos")
@@ -480,14 +444,16 @@ class AppParte2:
         if self.imagen_pil is None:
             return
         x, y = self._pixel_a_coord(event.x, event.y)
-        self.lbl_info.config(text=f"x = {x:.3f}   y = {y:.3f}")
+        self.lbl_info.config(text=f"x = {x:.1f}px   y = {y:.1f}px")
 
     def _convertir_a_dominio(self):
+        # Convierte nodos capturados a pares (x,y) en pixeles.
         c1 = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_c1_px]
         c2 = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_c2_px]
         return c1, c2
 
     def _calcular(self):
+        # Se calcula el area de cada curva y luego la diferencia absoluta.
         if len(self.nodos_c1_px) < 3:
             messagebox.showerror("Error", "C1 necesita al menos 3 nodos")
             return
@@ -509,9 +475,9 @@ class AppParte2:
         self.area_c2 = a2
         self.area_entre = abs(a1 - a2)
 
-        self.lbl_area_c1.config(text=f"Area C1: {self.area_c1:.6f}")
-        self.lbl_area_c2.config(text=f"Area C2: {self.area_c2:.6f}")
-        self.lbl_resultado.config(text=f"Area entre curvas: {self.area_entre:.6f}")
+        self.lbl_area_c1.config(text=f"Area C1: {self.area_c1:.6f} px^2")
+        self.lbl_area_c2.config(text=f"Area C2: {self.area_c2:.6f} px^2")
+        self.lbl_resultado.config(text=f"Area entre curvas: {self.area_entre:.6f} px^2")
 
     def _curva_interpolada(self, nodos_dom, grado=3, npts=300):
         pts = list(nodos_dom) + [nodos_dom[0]]
@@ -582,8 +548,10 @@ class AppParte2:
                 f"A(C2)={self.area_c2:.4f}   "
                 f"Entre={self.area_entre:.4f}", fontsize=9)
 
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
+        ax.set_xlabel("x (px)")
+        ax.set_ylabel("y (px)")
+        # En pixeles el eje Y crece hacia abajo; invertimos para coincidir con la imagen.
+        ax.invert_yaxis()
         ax.set_aspect("equal")
         ax.legend()
         ax.grid(True, alpha=0.3)

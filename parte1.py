@@ -206,7 +206,7 @@ class AppParte1:
 
         self._separador(panel)
 
-        tk.Label(panel, text="Definir limites en radios de abajo", font=("Arial", 9, "bold")).pack(anchor=tk.W)
+        tk.Label(panel, text="Definir limites en radios rojos de abajo", font=("Arial", 9, "bold")).pack(anchor=tk.W)
 
         self._separador(panel)
 
