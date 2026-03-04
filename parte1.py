@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 
 def preparar_nodos_unicos(xn, yn, tol=1e-10):
-    # Ordena por x y fusiona abscisas repetidas promediando y.
+    # Ordena por x y fusiona abscisas repetidas promediando y
     pares = sorted(zip(np.asarray(xn, dtype=float), np.asarray(yn, dtype=float)), key=lambda p: p[0])
     x_uni, y_uni = [], []
     i = 0
@@ -517,57 +517,9 @@ class AppParte1:
         dg = sorted([self._pixel_a_coord(dpx, 0)[0] for (dpx, _) in self.divisiones_g_px])
         return nf, ng, df, dg
 
-    def _agregar_nodos_virtuales_limite(self, nodos_dom, tol=1e-10):
-        # Agrega nodos virtuales en x=a y x=b por extrapolacion lineal con los extremos
-        if len(nodos_dom) < 2:
-            return list(nodos_dom)
-
-        pts = sorted(nodos_dom, key=lambda p: p[0])
-
-        def dedup_por_x(puntos):
-            out = []
-            for x, y in puntos:
-                if not out or abs(x - out[-1][0]) > tol:
-                    out.append((x, y))
-            return out
-
-        pts = dedup_por_x(pts)
-        if len(pts) < 2:
-            return list(nodos_dom)
-
-        def y_lineal(x1, y1, x2, y2, xq):
-            if abs(x2 - x1) <= tol:
-                return None
-            m = (y2 - y1) / (x2 - x1)
-            return y1 + m * (xq - x1)
-
-        def existe_x(puntos, xq):
-            return any(abs(x - xq) <= tol for x, _ in puntos)
-
-        out = list(pts)
-
-        if not existe_x(out, self.a):
-            x1, y1 = out[0]
-            x2, y2 = out[1]
-            ya = y_lineal(x1, y1, x2, y2, self.a)
-            if ya is not None and np.isfinite(ya):
-                out.append((self.a, float(ya)))
-
-        out = sorted(out, key=lambda p: p[0])
-        if len(out) >= 2 and not existe_x(out, self.b):
-            x1, y1 = out[-2]
-            x2, y2 = out[-1]
-            yb = y_lineal(x1, y1, x2, y2, self.b)
-            if yb is not None and np.isfinite(yb):
-                out.append((self.b, float(yb)))
-
-        return out
-
     def _calcular(self):
         # Interpolacion spline de f y g, luego integracion de |f-g|
         nf, ng, _, _ = self._convertir_a_dominio()
-        nf = self._agregar_nodos_virtuales_limite(nf)
-        ng = self._agregar_nodos_virtuales_limite(ng)
 
         self.f_interp, rango_f = construir_spline_natural(nf)
         self.g_interp, rango_g = construir_spline_natural(ng)
