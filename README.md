@@ -15,7 +15,7 @@ Este proyecto tiene dos aplicaciones en Python con interfaz grafica para estimar
 - `area_entre_curvas_por_subintervalos(...)`: suma el area por cada subintervalo comun entre `f` y `g`.
 - `simpson(...)`: integra numericamente con Simpson compuesta.
 - `area_entre_curvas(...)`: calcula `\int_a^b |f(x)-g(x)| dx`.
-- `AppParte1`: maneja toda la UI (carga de imagen, clicks, conversion px->dominio, dibujo y calculo).
+- `AppParte1`: maneja toda la UI (carga de imagen, limites con clicks, nodos/divisiones, dibujo y calculo).
 
 ### Parte 2 (`parte2.py`)
 
@@ -26,43 +26,33 @@ Este proyecto tiene dos aplicaciones en Python con interfaz grafica para estimar
 - `shoelace(...)`: area poligonal por formula del cordon.
 - `AppParte2`: UI de nodos para curvas cerradas, metodos y visualizacion.
 
-## Unidades: pixeles a dominio real
+## Unidades
 
-La UI usa pixeles solo para capturar clicks y antes de calcular, todo se transforma al dominio matematico definido por `a,b,c,d`.
-
-En ambos archivos se usa la conversion:
-
-- `x = a + (px - lim_px_a)/(lim_px_b - lim_px_a) * (b - a)`
-- `y = d - (py - lim_px_d)/(lim_px_c - lim_px_d) * (d - c)`
-
-Interpretacion:
-
-- `px, py`: coordenadas en pantalla.
-- `x, y`: coordenadas reales del problema (por ejemplo de 0 a 10 en default).
-- Resultado final de area: queda en **unidades del dominio al cuadrado**.
-
-Ejemplo: si se fija un dominio `[0,10] x [0,10]`, el area sale en `u^2` dentro de la escala 0-10.
+- **Parte 1** trabaja directamente en pixeles:
+  - nodos y divisiones se toman en `(px, py)`,
+  - el resultado de area se reporta en `px^2`.
+- **Parte 2** convierte pixeles a dominio real usando `a,b,c,d`:
+  - el resultado de area se reporta en `u^2` (o en la unidad real al cuadrado, si el dominio tiene unidad fisica).
 
 ## Guia de uso de la UI - Parte 1
 
 1. Abrir `parte1.py`.
 2. Pulsar **Cargar imagen**.
-3. En **Valores del dominio**, colocar `a,b,c,d` (por defecto 0,10,0,10) y pulsar **Fijar valores**.
-4. Antes de poner nodos, en modo **Fijar limites en imagen**, marcar en la imagen las lineas:
+3. Antes de poner nodos, en modo **Fijar limites en imagen**, marcar en la imagen las lineas:
    - `a` (vertical izquierda),
    - `b` (vertical derecha),
    - `c` (horizontal inferior),
    - `d` (horizontal superior).
-5. Elegir curva activa (`f` o `g`).
-6. (Opcional) En modo **Colocar divisiones de tramo**, agregar hasta 2 divisiones por curva para definir subintervalos (cada curva puede tener divisiones distintas).
-7. En modo **Colocar nodos**, hacer clicks sobre cada curva. Se requieren al menos 2 nodos por cada tramo definido para esa curva.
-8. Pulsar **CALCULAR AREA**.
-9. (Opcional) Pulsar **Ver graficas** para revisar interpolacion y zona integrada.
+4. Elegir curva activa (`f` o `g`).
+5. (Opcional) En modo **Colocar divisiones de tramo**, agregar hasta 2 divisiones por curva para definir subintervalos (cada curva puede tener divisiones distintas).
+6. En modo **Colocar nodos**, hacer clicks sobre cada curva. Se requieren al menos 2 nodos por cada tramo definido para esa curva.
+7. Pulsar **CALCULAR AREA**.
+8. (Opcional) Pulsar **Ver graficas** para revisar interpolacion y zona integrada.
 
 Nota:
 
-- Las coordenadas mostradas al mover el mouse ya estan en el dominio real.
-- El resultado se reporta en `u^2`.
+- Las coordenadas mostradas al mover el mouse estan en pixeles.
+- El resultado se reporta en `px^2`.
 - El area total se calcula como suma por subintervalos comunes entre `f` y `g`.
 
 ## Guia de uso de la UI - Parte 2
