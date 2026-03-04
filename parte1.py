@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 
 def evaluar_lagrange(xn, yn, x):
+    # Evaluacion directa del polinomio de Lagrange en un punto.
     n = len(xn)
     resultado = 0.0
     for i in range(n):
@@ -20,6 +21,8 @@ def evaluar_lagrange(xn, yn, x):
 
 
 def interpolante_por_trozos(nodos_dict, divisiones, a, b):
+    # Construye una funcion por tramos en [a,b].
+    # Si no hay divisiones, queda un solo tramo con todos los nodos.
     limites = [a] + sorted(divisiones) + [b]
     num_tramos = len(limites) - 1
 
@@ -88,6 +91,7 @@ def interpolante_por_trozos(nodos_dict, divisiones, a, b):
 
 
 def simpson(f, a, b, n=200):
+    # Regla de Simpson compuesta para integrar en [a,b]
     if n % 2 != 0:
         n += 1
     h = (b - a) / n
@@ -129,6 +133,9 @@ class AppParte1:
         self.divisiones_g_px = []
         self.f_interp = None
         self.g_interp = None
+        self.rango_f = None
+        self.rango_g = None
+        self.rango_area = None
 
         self._crear_panel()
         self._crear_canvas()
@@ -327,6 +334,9 @@ class AppParte1:
             self.d = float(self.entries_lim["d"].get())
             self.f_interp = None
             self.g_interp = None
+            self.rango_f = None
+            self.rango_g = None
+            self.rango_area = None
             self.lbl_resultado.config(text="Area: ---")
             self._redibujar()
             messagebox.showinfo("Listo", f"Dominio: [{self.a}, {self.b}] x [{self.c}, {self.d}]")
@@ -430,6 +440,9 @@ class AppParte1:
         self.divisiones_g_px.clear()
         self.f_interp = None
         self.g_interp = None
+        self.rango_f = None
+        self.rango_g = None
+        self.rango_area = None
         self.lbl_resultado.config(text="Area: ---")
         self._redibujar()
 
@@ -519,6 +532,7 @@ class AppParte1:
         self.lbl_info.config(text=f"x = {x:.3f}   y = {y:.3f}")
 
     def _convertir_a_dominio(self):
+        # Todo click se pasa de pixeles a coordenadas del dominio real.
         nf = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_f_px]
         ng = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_g_px]
         df = sorted([self._pixel_a_coord(dpx, 0)[0] for (dpx, _) in self.divisiones_f_px])
@@ -526,7 +540,17 @@ class AppParte1:
         return nf, ng, df, dg
 
     def _asignar_tramos(self, nodos_dom, divisiones_dom):
-        limites = [self.a] + divisiones_dom + [self.b]
+        if len(nodos_dom) < 2:
+            return None, None, None
+
+        xs = [x for (x, _) in nodos_dom]
+        x_min = min(xs)
+        x_max = max(xs)
+        if x_max - x_min <= 1e-12:
+            return None, None, None
+
+        divisiones_validas = sorted([d for d in divisiones_dom if x_min < d < x_max])
+        limites = [x_min] + divisiones_validas + [x_max]
         nodos_dict = {}
         for k in range(len(limites) - 1):
             nodos_dict[k] = []
@@ -535,16 +559,27 @@ class AppParte1:
                 if limites[k] - 1e-10 <= x <= limites[k+1] + 1e-10:
                     nodos_dict[k].append((x, y))
                     break
-        return nodos_dict
+        return nodos_dict, divisiones_validas, (x_min, x_max)
 
     def _calcular(self):
+        # Interpolacion de f y g por tramos, luego integracion de |f-g|.
         nf, ng, df, dg = self._convertir_a_dominio()
 
-        nodos_dict_f = self._asignar_tramos(nf, df)
-        nodos_dict_g = self._asignar_tramos(ng, dg)
+        nodos_f_pack = self._asignar_tramos(nf, df)
+        nodos_g_pack = self._asignar_tramos(ng, dg)
 
-        self.f_interp = interpolante_por_trozos(nodos_dict_f, df, self.a, self.b)
-        self.g_interp = interpolante_por_trozos(nodos_dict_g, dg, self.a, self.b)
+        if nodos_f_pack[0] is None:
+            messagebox.showerror("Error", "f necesita al menos 2 nodos con x distintas")
+            return
+        if nodos_g_pack[0] is None:
+            messagebox.showerror("Error", "g necesita al menos 2 nodos con x distintas")
+            return
+
+        nodos_dict_f, df_calc, rango_f = nodos_f_pack
+        nodos_dict_g, dg_calc, rango_g = nodos_g_pack
+
+        self.f_interp = interpolante_por_trozos(nodos_dict_f, df_calc, rango_f[0], rango_f[1])
+        self.g_interp = interpolante_por_trozos(nodos_dict_g, dg_calc, rango_g[0], rango_g[1])
 
         if self.f_interp is None:
             messagebox.showerror("Error",
@@ -555,7 +590,24 @@ class AppParte1:
                 "Faltan nodos en algun tramo de g (minimo 2 por tramo)")
             return
 
-        area = area_entre_curvas(self.f_interp, self.g_interp, self.a, self.b)
+        x_ini = max(rango_f[0], rango_g[0])
+        x_fin = min(rango_f[1], rango_g[1])
+        if x_fin - x_ini <= 1e-12:
+            messagebox.showerror(
+                "Error",
+                "No hay traslape en x entre f y g (segun sus nodos).")
+            self.f_interp = None
+            self.g_interp = None
+            self.rango_f = None
+            self.rango_g = None
+            self.rango_area = None
+            self.lbl_resultado.config(text="Area: ---")
+            return
+
+        self.rango_f = rango_f
+        self.rango_g = rango_g
+        self.rango_area = (x_ini, x_fin)
+        area = area_entre_curvas(self.f_interp, self.g_interp, x_ini, x_fin)
         self.lbl_resultado.config(text=f"Area ~ {area:.6f}")
 
     def _mostrar_graficas(self):
@@ -565,14 +617,22 @@ class AppParte1:
 
         nf, ng, df, dg = self._convertir_a_dominio()
 
-        xs = np.linspace(self.a, self.b, 500)
-        yf = np.array([self.f_interp(x) for x in xs])
-        yg = np.array([self.g_interp(x) for x in xs])
+        if self.rango_f is None or self.rango_g is None or self.rango_area is None:
+            messagebox.showinfo("", "Primero calcule el area")
+            return
+
+        xs_f = np.linspace(self.rango_f[0], self.rango_f[1], 500)
+        ys_f = np.array([self.f_interp(x) for x in xs_f])
+        xs_g = np.linspace(self.rango_g[0], self.rango_g[1], 500)
+        ys_g = np.array([self.g_interp(x) for x in xs_g])
+        xs_area = np.linspace(self.rango_area[0], self.rango_area[1], 500)
+        yf_area = np.array([self.f_interp(x) for x in xs_area])
+        yg_area = np.array([self.g_interp(x) for x in xs_area])
 
         fig, ax = plt.subplots(figsize=(9, 5))
-        ax.plot(xs, yf, color="#4488FF", linewidth=2, label="f interpolada")
-        ax.plot(xs, yg, color="#00CC66", linewidth=2, label="g interpolada")
-        ax.fill_between(xs, yf, yg, alpha=0.25, color="orange", label="Area")
+        ax.plot(xs_f, ys_f, color="#4488FF", linewidth=2, label="f interpolada")
+        ax.plot(xs_g, ys_g, color="#00CC66", linewidth=2, label="g interpolada")
+        ax.fill_between(xs_area, yf_area, yg_area, alpha=0.25, color="orange", label="Area")
 
         xp_f = [p[0] for p in nf]
         yp_f = [p[1] for p in nf]
@@ -581,11 +641,11 @@ class AppParte1:
         ax.plot(xp_f, yp_f, "o", color="#4488FF", markersize=5)
         ax.plot(xp_g, yp_g, "o", color="#00CC66", markersize=5)
 
-        for d in df:
+        for d in [d for d in df if self.rango_f[0] < d < self.rango_f[1]]:
             ax.axvline(x=d, color="#FF6600", linewidth=1, linestyle="--", alpha=0.6)
             ax.plot(d, self.f_interp(d), "D", color="#FF6600", markersize=6, zorder=5)
 
-        for d in dg:
+        for d in [d for d in dg if self.rango_g[0] < d < self.rango_g[1]]:
             ax.axvline(x=d, color="#CC9900", linewidth=1, linestyle="--", alpha=0.6)
             ax.plot(d, self.g_interp(d), "D", color="#CC9900", markersize=6, zorder=5)
 
