@@ -1,4 +1,4 @@
-# ProyectoCalculo - Curvas de Nivel
+# Proyect de Calculo Cientifico- Curvas de Nivel
 
 Este proyecto tiene dos aplicaciones en Python con interfaz grafica para estimar areas a partir de puntos tomados sobre una imagen.
 
