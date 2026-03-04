@@ -1,4 +1,4 @@
-# Proyecto de Calculo Cientifico- Curvas de Nivel
+# ProyectoCalculo - Curvas de Nivel
 
 Este proyecto tiene dos aplicaciones en Python con interfaz grafica para estimar areas a partir de puntos tomados sobre una imagen.
 
@@ -9,8 +9,10 @@ Este proyecto tiene dos aplicaciones en Python con interfaz grafica para estimar
 
 ### Parte 1 (`parte1.py`)
 
-- `evaluar_lagrange(...)`: evalua polinomio interpolante de Lagrange.
-- `interpolante_por_trozos(...)`: arma una funcion por tramos usando nodos y divisiones.
+- `preparar_nodos_unicos(...)`: ordena nodos y fusiona `x` repetidas.
+- `construir_spline_natural(...)`: crea interpolante spline cubico natural en un tramo.
+- `construir_interpolante_por_trozos_spline(...)`: arma una funcion por tramos usando divisiones (maximo 3 subintervalos por curva).
+- `area_entre_curvas_por_subintervalos(...)`: suma el area por cada subintervalo comun entre `f` y `g`.
 - `simpson(...)`: integra numericamente con Simpson compuesta.
 - `area_entre_curvas(...)`: calcula `\int_a^b |f(x)-g(x)| dx`.
 - `AppParte1`: maneja toda la UI (carga de imagen, clicks, conversion px->dominio, dibujo y calculo).
@@ -46,27 +48,29 @@ Ejemplo: si se fija un dominio `[0,10] x [0,10]`, el area sale en `u^2` dentro d
 1. Abrir `parte1.py`.
 2. Pulsar **Cargar imagen**.
 3. En **Valores del dominio**, colocar `a,b,c,d` (por defecto 0,10,0,10) y pulsar **Fijar valores**.
-4. En modo **Fijar limites en imagen**, marcar en la imagen las lineas:
+4. Antes de poner nodos, en modo **Fijar limites en imagen**, marcar en la imagen las lineas:
    - `a` (vertical izquierda),
    - `b` (vertical derecha),
    - `c` (horizontal inferior),
    - `d` (horizontal superior).
 5. Elegir curva activa (`f` o `g`).
-6. En modo **Colocar nodos**, hacer clicks sobre cada curva
-7. (Opcional) En modo **Colocar divisiones de tramo**, agregar hasta 2 divisiones por curva si se necesita mejor ajuste por tramos
+6. (Opcional) En modo **Colocar divisiones de tramo**, agregar hasta 2 divisiones por curva para definir subintervalos (cada curva puede tener divisiones distintas).
+7. En modo **Colocar nodos**, hacer clicks sobre cada curva. Se requieren al menos 2 nodos por cada tramo definido para esa curva.
 8. Pulsar **CALCULAR AREA**.
-9. (Opcional) Pulsar **Ver graficas** para revisar interpolacion y zona integrada
+9. (Opcional) Pulsar **Ver graficas** para revisar interpolacion y zona integrada.
 
 Nota:
 
 - Las coordenadas mostradas al mover el mouse ya estan en el dominio real.
+- El resultado se reporta en `u^2`.
+- El area total se calcula como suma por subintervalos comunes entre `f` y `g`.
 
 ## Guia de uso de la UI - Parte 2
 
 1. Abrir `parte2.py`.
 2. Pulsar **Cargar imagen**.
-3. Colocar `a,b,c,d` y pulsar **Fijar valores**.
-4. En modo **Fijar limites en imagen**, marcar `a,b,c,d` como en Parte 1.
+3. En **Valores del dominio**, colocar `a,b,c,d` y pulsar **Fijar valores**.
+4. Antes de poner nodos, en modo **Fijar limites en imagen**, marcar `a,b,c,d` como en Parte 1.
 5. Seleccionar curva activa:
    - `C1 exterior (azul)`,
    - `C2 interior (rojo)`.
@@ -85,3 +89,4 @@ Notas:
 
 - Se necesitan al menos 3 nodos por curva cerrada.
 - Conviene mantener orden consistente al marcar nodos.
+- El resultado se reporta en `u^2`.

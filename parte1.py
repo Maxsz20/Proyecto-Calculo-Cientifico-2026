@@ -409,15 +409,12 @@ class AppParte1:
         if modo == "divisiones":
             curva = self.var_curva.get()
             divisiones = self.divisiones_f_px if curva == "f" else self.divisiones_g_px
-            nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
             if len(divisiones) >= 2:
                 messagebox.showinfo("", "Maximo 2 divisiones por curva (3 tramos)")
                 return
             div_px = event.x
             div_py = event.y
             divisiones.append((div_px, div_py))
-            if not any(abs(px - div_px) <= 2 for (px, _) in nodos):
-                nodos.append((div_px, div_py))
         else:
             curva = self.var_curva.get()
             nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
@@ -450,14 +447,8 @@ class AppParte1:
         curva = self.var_curva.get()
         if modo == "divisiones":
             divisiones = self.divisiones_f_px if curva == "f" else self.divisiones_g_px
-            nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
             if divisiones:
-                div_px, div_py = divisiones.pop()
-                for i in range(len(nodos) - 1, -1, -1):
-                    px, py = nodos[i]
-                    if abs(px - div_px) <= 2 and abs(py - div_py) <= 6:
-                        nodos.pop(i)
-                        break
+                divisiones.pop()
         else:
             nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
             if nodos:
