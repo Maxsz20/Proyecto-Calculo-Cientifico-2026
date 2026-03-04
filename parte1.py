@@ -88,7 +88,7 @@ def asignar_nodos_a_tramos(nodos_dom, limites, tol=1e-10):
 
 
 def construir_interpolante_por_trozos_spline(nodos_dom, divisiones_dom, a, b):
-    # Construye un interpolante por tramos usando el rango real de nodos
+    # Construye un interpolante por tramos
     if len(nodos_dom) < 2:
         return None, None, []
 
@@ -127,7 +127,7 @@ def construir_interpolante_por_trozos_spline(nodos_dom, divisiones_dom, a, b):
 
 
 def area_entre_curvas_por_subintervalos(f, g, puntos_corte, n=200):
-    # Integra |f-g| por cada subintervalo y acumula solo donde ambas curvas esten definidas.
+    # Integra |f-g| por cada subintervalo y acumula solo donde ambas curvas esten definidas
     area_total = 0.0
     n_usados = 0
     cortes = sorted(set(float(x) for x in puntos_corte))
@@ -276,7 +276,7 @@ class AppParte1:
         tk.Button(panel, text="CALCULAR AREA", command=self._calcular,
                   bg="#2E7D32", fg="white", font=("Arial", 10, "bold")).pack(fill=tk.X, pady=4)
 
-        self.lbl_resultado = tk.Label(panel, text="Area: ---",
+        self.lbl_resultado = tk.Label(panel, text="Area: --- u^2",
                                        font=("Arial", 11, "bold"), fg="#1565C0")
         self.lbl_resultado.pack(pady=4)
 
@@ -378,7 +378,7 @@ class AppParte1:
             self.rango_f = None
             self.rango_g = None
             self.rango_area = None
-            self.lbl_resultado.config(text="Area: ---")
+            self.lbl_resultado.config(text="Area: --- u^2")
             self._redibujar()
             messagebox.showinfo("Listo", f"Dominio: [{self.a}, {self.b}] x [{self.c}, {self.d}]")
         except ValueError:
@@ -484,7 +484,7 @@ class AppParte1:
         self.rango_f = None
         self.rango_g = None
         self.rango_area = None
-        self.lbl_resultado.config(text="Area: ---")
+        self.lbl_resultado.config(text="Area: --- u^2")
         self._redibujar()
 
     def _redibujar(self):
@@ -615,7 +615,7 @@ class AppParte1:
             self.rango_f = None
             self.rango_g = None
             self.rango_area = None
-            self.lbl_resultado.config(text="Area: ---")
+            self.lbl_resultado.config(text="Area: --- u^2")
             return
 
         cortes = [x_ini, x_fin] + [d for d in (df_calc + dg_calc) if x_ini < d < x_fin]
@@ -629,11 +629,11 @@ class AppParte1:
             self.rango_f = None
             self.rango_g = None
             self.rango_area = None
-            self.lbl_resultado.config(text="Area: ---")
+            self.lbl_resultado.config(text="Area: --- u^2")
             return
 
         self.rango_area = (x_ini, x_fin)
-        self.lbl_resultado.config(text=f"Area ~ {area:.6f}")
+        self.lbl_resultado.config(text=f"Area ~ {area:.6f} u^2")
 
     def _mostrar_graficas(self):
         if self.f_interp is None or self.g_interp is None:
