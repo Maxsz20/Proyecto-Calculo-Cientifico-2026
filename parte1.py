@@ -2,27 +2,44 @@ import numpy as np
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
+from scipy.interpolate import lagrange as scipy_lagrange
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 
+def construir_lagrange(xn, yn):
+    x_arr, y_arr = preparar_nodos_lagrange(xn, yn)
+    return scipy_lagrange(x_arr, y_arr)
+
+
+def preparar_nodos_lagrange(xn, yn, tol=1e-10):
+    pares = sorted(zip(np.asarray(xn, dtype=float), np.asarray(yn, dtype=float)), key=lambda p: p[0])
+    x_uni, y_uni = [], []
+    i = 0
+    n = len(pares)
+    while i < n:
+        x0 = pares[i][0]
+        ys = [pares[i][1]]
+        j = i + 1
+        while j < n and abs(pares[j][0] - x0) <= tol:
+            ys.append(pares[j][1])
+            j += 1
+        x_uni.append(x0)
+        y_uni.append(float(np.mean(ys)))
+        i = j
+    return np.array(x_uni, dtype=float), np.array(y_uni, dtype=float)
+
+
 def evaluar_lagrange(xn, yn, x):
-    # Evaluacion directa del polinomio de Lagrange en un punto.
-    n = len(xn)
-    resultado = 0.0
-    for i in range(n):
-        Li = 1.0
-        for j in range(n):
-            if j != i:
-                Li *= (x - xn[j]) / (xn[i] - xn[j])
-        resultado += yn[i] * Li
-    return resultado
+    # Evalua en un punto el polinomio de Lagrange
+    poly = construir_lagrange(xn, yn)
+    return float(poly(x))
 
 
 def interpolante_por_trozos(nodos_dict, divisiones, a, b):
-    # Construye una funcion por tramos en [a,b].
-    # Si no hay divisiones, queda un solo tramo con todos los nodos.
+    # Construye una funcion por tramos en [a,b]
+    # Si no hay divisiones, queda un solo tramo con todos los nodos
     limites = [a] + sorted(divisiones) + [b]
     num_tramos = len(limites) - 1
 
@@ -65,8 +82,12 @@ def interpolante_por_trozos(nodos_dict, divisiones, a, b):
             pts_izq = sorted(nodos_prep[k_izq], key=lambda p: p[0])
             xn_tmp = np.array([p[0] for p in pts_izq])
             yn_tmp = np.array([p[1] for p in pts_izq])
+            xn_tmp, yn_tmp = preparar_nodos_lagrange(xn_tmp, yn_tmp)
+            if len(xn_tmp) < 2:
+                return None
             xc = max(xn_tmp[0], min(d, xn_tmp[-1]))
-            y_virtual = evaluar_lagrange(xn_tmp, yn_tmp, xc)
+            p_tmp = construir_lagrange(xn_tmp, yn_tmp)
+            y_virtual = float(p_tmp(xc))
             nodos_prep[k_izq].append((d, y_virtual))
             nodos_prep[k_der].append((d, y_virtual))
 
@@ -76,16 +97,22 @@ def interpolante_por_trozos(nodos_dict, divisiones, a, b):
         xn = np.array([p[0] for p in puntos])
         yn = np.array([p[1] for p in puntos])
         orden = np.argsort(xn)
-        trozos.append((limites[k], limites[k+1], xn[orden], yn[orden]))
+        xn_ord = xn[orden]
+        yn_ord = yn[orden]
+        xn_ord, yn_ord = preparar_nodos_lagrange(xn_ord, yn_ord)
+        if len(xn_ord) < 2:
+            return None
+        p_lag = construir_lagrange(xn_ord, yn_ord)
+        trozos.append((limites[k], limites[k+1], xn_ord, p_lag))
 
     def f(x):
-        for ak, bk, xn, yn in trozos:
+        for ak, bk, xn, p_lag in trozos:
             if ak - 1e-10 <= x <= bk + 1e-10:
                 xc = max(xn[0], min(x, xn[-1]))
-                return evaluar_lagrange(xn, yn, xc)
-        xn, yn = trozos[-1][2], trozos[-1][3]
+                return float(p_lag(xc))
+        xn, p_lag = trozos[-1][2], trozos[-1][3]
         xc = max(xn[0], min(x, xn[-1]))
-        return evaluar_lagrange(xn, yn, xc)
+        return float(p_lag(xc))
 
     return f
 
@@ -532,12 +559,58 @@ class AppParte1:
         self.lbl_info.config(text=f"x = {x:.3f}   y = {y:.3f}")
 
     def _convertir_a_dominio(self):
-        # Todo click se pasa de pixeles a coordenadas del dominio real.
+        # Todo click se pasa de pixeles a coordenadas del dominio real
         nf = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_f_px]
         ng = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_g_px]
         df = sorted([self._pixel_a_coord(dpx, 0)[0] for (dpx, _) in self.divisiones_f_px])
         dg = sorted([self._pixel_a_coord(dpx, 0)[0] for (dpx, _) in self.divisiones_g_px])
         return nf, ng, df, dg
+
+    def _agregar_nodos_virtuales_limite(self, nodos_dom, tol=1e-10):
+        # Agrega nodos virtuales en x=a y x=b por extrapolacion lineal con los extremos
+        if len(nodos_dom) < 2:
+            return list(nodos_dom)
+
+        pts = sorted(nodos_dom, key=lambda p: p[0])
+
+        def dedup_por_x(puntos):
+            out = []
+            for x, y in puntos:
+                if not out or abs(x - out[-1][0]) > tol:
+                    out.append((x, y))
+            return out
+
+        pts = dedup_por_x(pts)
+        if len(pts) < 2:
+            return list(nodos_dom)
+
+        def y_lineal(x1, y1, x2, y2, xq):
+            if abs(x2 - x1) <= tol:
+                return None
+            m = (y2 - y1) / (x2 - x1)
+            return y1 + m * (xq - x1)
+
+        def existe_x(puntos, xq):
+            return any(abs(x - xq) <= tol for x, _ in puntos)
+
+        out = list(pts)
+
+        if not existe_x(out, self.a):
+            x1, y1 = out[0]
+            x2, y2 = out[1]
+            ya = y_lineal(x1, y1, x2, y2, self.a)
+            if ya is not None and np.isfinite(ya):
+                out.append((self.a, float(ya)))
+
+        out = sorted(out, key=lambda p: p[0])
+        if len(out) >= 2 and not existe_x(out, self.b):
+            x1, y1 = out[-2]
+            x2, y2 = out[-1]
+            yb = y_lineal(x1, y1, x2, y2, self.b)
+            if yb is not None and np.isfinite(yb):
+                out.append((self.b, float(yb)))
+
+        return out
 
     def _asignar_tramos(self, nodos_dom, divisiones_dom):
         if len(nodos_dom) < 2:
@@ -562,8 +635,10 @@ class AppParte1:
         return nodos_dict, divisiones_validas, (x_min, x_max)
 
     def _calcular(self):
-        # Interpolacion de f y g por tramos, luego integracion de |f-g|.
+        # Interpolacion de f y g por tramos, luego integracion de |f-g|
         nf, ng, df, dg = self._convertir_a_dominio()
+        nf = self._agregar_nodos_virtuales_limite(nf)
+        ng = self._agregar_nodos_virtuales_limite(ng)
 
         nodos_f_pack = self._asignar_tramos(nf, df)
         nodos_g_pack = self._asignar_tramos(ng, dg)
@@ -608,6 +683,12 @@ class AppParte1:
         self.rango_g = rango_g
         self.rango_area = (x_ini, x_fin)
         area = area_entre_curvas(self.f_interp, self.g_interp, x_ini, x_fin)
+        if not np.isfinite(area):
+            messagebox.showerror(
+                "Error",
+                "El area resulto no valida (NaN/Inf). Revise nodos repetidos en x o reduzca nodos por tramo.")
+            self.lbl_resultado.config(text="Area: ---")
+            return
         self.lbl_resultado.config(text=f"Area ~ {area:.6f}")
 
     def _mostrar_graficas(self):
