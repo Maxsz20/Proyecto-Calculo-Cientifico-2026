@@ -394,14 +394,13 @@ class AppParte1:
         self._redibujar()
 
     def _limpiar_todo(self):
-        self.nodos_c1_px.clear()
-        self.nodos_c2_px.clear()
-        self.area_c1 = None
-        self.area_c2 = None
-        self.area_entre = None
-        self.lbl_area_c1.config(text="Area C1: ---")
-        self.lbl_area_c2.config(text="Area C2: ---")
-        self.lbl_resultado.config(text="Area entre curvas: ---")
+        self.nodos_f_px.clear()
+        self.nodos_g_px.clear()
+        self.divisiones_f_px.clear()
+        self.divisiones_g_px.clear()
+        self.f_interp = None
+        self.g_interp = None
+        self.lbl_resultado.config(text="Area: ---")
         self._redibujar()
 
     def _redibujar(self):
