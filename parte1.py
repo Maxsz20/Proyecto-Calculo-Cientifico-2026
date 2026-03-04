@@ -2,18 +2,14 @@ import numpy as np
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
-from scipy.interpolate import lagrange as scipy_lagrange
+from scipy.interpolate import CubicSpline
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 
-def construir_lagrange(xn, yn):
-    x_arr, y_arr = preparar_nodos_lagrange(xn, yn)
-    return scipy_lagrange(x_arr, y_arr)
-
-
-def preparar_nodos_lagrange(xn, yn, tol=1e-10):
+def preparar_nodos_unicos(xn, yn, tol=1e-10):
+    # Ordena por x y fusiona abscisas repetidas promediando y.
     pares = sorted(zip(np.asarray(xn, dtype=float), np.asarray(yn, dtype=float)), key=lambda p: p[0])
     x_uni, y_uni = [], []
     i = 0
@@ -31,92 +27,6 @@ def preparar_nodos_lagrange(xn, yn, tol=1e-10):
     return np.array(x_uni, dtype=float), np.array(y_uni, dtype=float)
 
 
-def evaluar_lagrange(xn, yn, x):
-    # Evalua en un punto el polinomio de Lagrange
-    poly = construir_lagrange(xn, yn)
-    return float(poly(x))
-
-
-def interpolante_por_trozos(nodos_dict, divisiones, a, b):
-    # Construye una funcion por tramos en [a,b]
-    # Si no hay divisiones, queda un solo tramo con todos los nodos
-    limites = [a] + sorted(divisiones) + [b]
-    num_tramos = len(limites) - 1
-
-    nodos_prep = {}
-    for k in range(num_tramos):
-        if k not in nodos_dict or len(nodos_dict[k]) < 2:
-            return None
-        nodos_prep[k] = list(nodos_dict[k])
-
-    for idx, d in enumerate(sorted(divisiones)):
-        k_izq = idx
-        k_der = idx + 1
-        ancho_min = min(limites[k_izq+1] - limites[k_izq],
-                        limites[k_der+1] - limites[k_der])
-        tol = 0.12 * ancho_min
-
-        nodo_frontera = None
-
-        for i, (x, y) in enumerate(nodos_prep[k_izq]):
-            if abs(x - d) <= tol:
-                nodos_prep[k_izq][i] = (d, y)
-                nodo_frontera = (d, y)
-                break
-
-        if nodo_frontera is None:
-            for i, (x, y) in enumerate(nodos_prep[k_der]):
-                if abs(x - d) <= tol:
-                    nodos_prep[k_der][i] = (d, y)
-                    nodo_frontera = (d, y)
-                    break
-
-        if nodo_frontera is not None:
-            ya_en_izq = any(abs(p[0] - d) < 1e-10 for p in nodos_prep[k_izq])
-            ya_en_der = any(abs(p[0] - d) < 1e-10 for p in nodos_prep[k_der])
-            if not ya_en_izq:
-                nodos_prep[k_izq].append(nodo_frontera)
-            if not ya_en_der:
-                nodos_prep[k_der].append(nodo_frontera)
-        else:
-            pts_izq = sorted(nodos_prep[k_izq], key=lambda p: p[0])
-            xn_tmp = np.array([p[0] for p in pts_izq])
-            yn_tmp = np.array([p[1] for p in pts_izq])
-            xn_tmp, yn_tmp = preparar_nodos_lagrange(xn_tmp, yn_tmp)
-            if len(xn_tmp) < 2:
-                return None
-            xc = max(xn_tmp[0], min(d, xn_tmp[-1]))
-            p_tmp = construir_lagrange(xn_tmp, yn_tmp)
-            y_virtual = float(p_tmp(xc))
-            nodos_prep[k_izq].append((d, y_virtual))
-            nodos_prep[k_der].append((d, y_virtual))
-
-    trozos = []
-    for k in range(num_tramos):
-        puntos = nodos_prep[k]
-        xn = np.array([p[0] for p in puntos])
-        yn = np.array([p[1] for p in puntos])
-        orden = np.argsort(xn)
-        xn_ord = xn[orden]
-        yn_ord = yn[orden]
-        xn_ord, yn_ord = preparar_nodos_lagrange(xn_ord, yn_ord)
-        if len(xn_ord) < 2:
-            return None
-        p_lag = construir_lagrange(xn_ord, yn_ord)
-        trozos.append((limites[k], limites[k+1], xn_ord, p_lag))
-
-    def f(x):
-        for ak, bk, xn, p_lag in trozos:
-            if ak - 1e-10 <= x <= bk + 1e-10:
-                xc = max(xn[0], min(x, xn[-1]))
-                return float(p_lag(xc))
-        xn, p_lag = trozos[-1][2], trozos[-1][3]
-        xc = max(xn[0], min(x, xn[-1]))
-        return float(p_lag(xc))
-
-    return f
-
-
 def simpson(f, a, b, n=200):
     # Regla de Simpson compuesta para integrar en [a,b]
     if n % 2 != 0:
@@ -131,12 +41,47 @@ def area_entre_curvas(f, g, a, b, n=200):
     return simpson(lambda x: abs(f(x) - g(x)), a, b, n)
 
 
+def construir_spline_natural(nodos_dom):
+    # Interpolante por spline cubico natural.
+    if len(nodos_dom) < 2:
+        return None, None
+
+    x_raw = np.array([p[0] for p in nodos_dom], dtype=float)
+    y_raw = np.array([p[1] for p in nodos_dom], dtype=float)
+    x_uni, y_uni = preparar_nodos_unicos(x_raw, y_raw)
+
+    if len(x_uni) < 2:
+        return None, None
+
+    x_min = float(x_uni[0])
+    x_max = float(x_uni[-1])
+    if x_max - x_min <= 1e-12:
+        return None, None
+
+    if len(x_uni) == 2:
+        y0 = float(y_uni[0])
+        y1 = float(y_uni[1])
+        m = (y1 - y0) / (x_max - x_min)
+
+        def f_lin(x):
+            return y0 + m * (x - x_min)
+
+        return f_lin, (x_min, x_max)
+
+    spline = CubicSpline(x_uni, y_uni, bc_type="natural")
+
+    def f_spline(x):
+        return float(spline(x))
+
+    return f_spline, (x_min, x_max)
+
+
 class AppParte1:
 
     def __init__(self, master):
         self.master = master
         master.title("Parte 1 - Area entre curvas (funciones)")
-        master.geometry("1150x650")
+        master.geometry("1360x760")
         master.resizable(True, True)
 
         self.imagen_pil = None
@@ -163,12 +108,15 @@ class AppParte1:
         self.rango_f = None
         self.rango_g = None
         self.rango_area = None
+        self.max_zoom_imagen = 1.6
+        self.factor_llenado_canvas = 0.92
+        self.radio_nodo_px = 6
 
         self._crear_panel()
         self._crear_canvas()
 
     def _crear_panel(self):
-        panel = tk.Frame(self.master, width=280)
+        panel = tk.Frame(self.master, width=250)
         panel.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8)
         panel.pack_propagate(False)
 
@@ -315,7 +263,10 @@ class AppParte1:
         if cw < 50:
             cw, ch = 800, 600
 
-        ratio = min(cw / img.width, ch / img.height, 1.0)
+        ratio = min(cw / img.width, ch / img.height)
+        ratio *= self.factor_llenado_canvas
+        ratio = min(ratio, self.max_zoom_imagen)
+        ratio = max(ratio, 0.05)
         self.img_w = int(img.width * ratio)
         self.img_h = int(img.height * ratio)
         img = img.resize((self.img_w, self.img_h), Image.LANCZOS)
@@ -481,72 +432,72 @@ class AppParte1:
         if self.lim_px_a is not None:
             self.canvas.create_line(self.lim_px_a, self.offset_y,
                                     self.lim_px_a, self.offset_y + self.img_h,
-                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
-            self.canvas.create_oval(self.lim_px_a - 4, self.offset_y + self.img_h // 2 - 4,
-                                    self.lim_px_a + 4, self.offset_y + self.img_h // 2 + 4,
+                                    fill="#FF0000", width=3, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.lim_px_a - 6, self.offset_y + self.img_h // 2 - 6,
+                                    self.lim_px_a + 6, self.offset_y + self.img_h // 2 + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
-            self.canvas.create_text(self.lim_px_a, self.offset_y - 12,
+            self.canvas.create_text(self.lim_px_a, self.offset_y - 14,
                                     text=f"a={self.a:.1f}", fill="#FF0000",
-                                    font=("Consolas", 8, "bold"), tags="limite")
+                                    font=("Consolas", 10, "bold"), tags="limite")
 
         if self.lim_px_b is not None:
             self.canvas.create_line(self.lim_px_b, self.offset_y,
                                     self.lim_px_b, self.offset_y + self.img_h,
-                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
-            self.canvas.create_oval(self.lim_px_b - 4, self.offset_y + self.img_h // 2 - 4,
-                                    self.lim_px_b + 4, self.offset_y + self.img_h // 2 + 4,
+                                    fill="#FF0000", width=3, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.lim_px_b - 6, self.offset_y + self.img_h // 2 - 6,
+                                    self.lim_px_b + 6, self.offset_y + self.img_h // 2 + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
-            self.canvas.create_text(self.lim_px_b, self.offset_y - 12,
+            self.canvas.create_text(self.lim_px_b, self.offset_y - 14,
                                     text=f"b={self.b:.1f}", fill="#FF0000",
-                                    font=("Consolas", 8, "bold"), tags="limite")
+                                    font=("Consolas", 10, "bold"), tags="limite")
 
         if self.lim_px_c is not None:
             self.canvas.create_line(self.offset_x, self.lim_px_c,
                                     self.offset_x + self.img_w, self.lim_px_c,
-                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
-            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 4, self.lim_px_c - 4,
-                                    self.offset_x + self.img_w // 2 + 4, self.lim_px_c + 4,
+                                    fill="#FF0000", width=3, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 6, self.lim_px_c - 6,
+                                    self.offset_x + self.img_w // 2 + 6, self.lim_px_c + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
             self.canvas.create_text(self.offset_x - 5, self.lim_px_c,
                                     text=f"c={self.c:.1f}", fill="#FF0000",
-                                    font=("Consolas", 8, "bold"), anchor=tk.E, tags="limite")
+                                    font=("Consolas", 10, "bold"), anchor=tk.E, tags="limite")
 
         if self.lim_px_d is not None:
             self.canvas.create_line(self.offset_x, self.lim_px_d,
                                     self.offset_x + self.img_w, self.lim_px_d,
-                                    fill="#FF0000", width=2, dash=(8, 4), tags="limite")
-            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 4, self.lim_px_d - 4,
-                                    self.offset_x + self.img_w // 2 + 4, self.lim_px_d + 4,
+                                    fill="#FF0000", width=3, dash=(8, 4), tags="limite")
+            self.canvas.create_oval(self.offset_x + self.img_w // 2 - 6, self.lim_px_d - 6,
+                                    self.offset_x + self.img_w // 2 + 6, self.lim_px_d + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
             self.canvas.create_text(self.offset_x - 5, self.lim_px_d,
                                     text=f"d={self.d:.1f}", fill="#FF0000",
-                                    font=("Consolas", 8, "bold"), anchor=tk.E, tags="limite")
+                                    font=("Consolas", 10, "bold"), anchor=tk.E, tags="limite")
 
         for curva, divisiones, nodos in [("f", self.divisiones_f_px, self.nodos_f_px),
                                           ("g", self.divisiones_g_px, self.nodos_g_px)]:
             color_div = "#FF8800" if curva == "f" else "#FFAA00"
             
             for div_px, div_py in divisiones:
-                py_top = max(self.offset_y, div_py - 30)
-                py_bot = min(self.offset_y + self.img_h, div_py + 30)
+                py_top = max(self.offset_y, div_py - 40)
+                py_bot = min(self.offset_y + self.img_h, div_py + 40)
 
                 self.canvas.create_line(div_px, py_top, div_px, py_bot,
-                                        fill=color_div, width=2, dash=(5, 3), tags="division")
+                                        fill=color_div, width=3, dash=(5, 3), tags="division")
                 x_dom, _ = self._pixel_a_coord(div_px, 0)
                 self.canvas.create_text(div_px, py_top - 10,
                                         text=f"{curva} div ({x_dom:.2f})",
-                                        fill=color_div, font=("Consolas", 7), tags="division")
+                                        fill=color_div, font=("Consolas", 9), tags="division")
 
         pares = [("f", self.nodos_f_px, "#4488FF"), ("g", self.nodos_g_px, "#00CC66")]
         for nombre, nodos, color in pares:
             for (px, py) in nodos:
-                r = 4
+                r = self.radio_nodo_px
                 self.canvas.create_oval(px-r, py-r, px+r, py+r,
                                         fill=color, outline="white", width=1, tags="nodo")
                 x_dom, y_dom = self._pixel_a_coord(px, py)
                 self.canvas.create_text(px+10, py-10,
                                         text=f"({x_dom:.2f}, {y_dom:.2f})",
-                                        fill=color, font=("Consolas", 7), tags="nodo")
+                                        fill=color, font=("Consolas", 9), tags="nodo")
 
         self.lbl_estado.config(
             text=f"f: {len(self.nodos_f_px)} nodos, {len(self.divisiones_f_px)} div | "
@@ -612,57 +563,20 @@ class AppParte1:
 
         return out
 
-    def _asignar_tramos(self, nodos_dom, divisiones_dom):
-        if len(nodos_dom) < 2:
-            return None, None, None
-
-        xs = [x for (x, _) in nodos_dom]
-        x_min = min(xs)
-        x_max = max(xs)
-        if x_max - x_min <= 1e-12:
-            return None, None, None
-
-        divisiones_validas = sorted([d for d in divisiones_dom if x_min < d < x_max])
-        limites = [x_min] + divisiones_validas + [x_max]
-        nodos_dict = {}
-        for k in range(len(limites) - 1):
-            nodos_dict[k] = []
-        for (x, y) in nodos_dom:
-            for k in range(len(limites) - 1):
-                if limites[k] - 1e-10 <= x <= limites[k+1] + 1e-10:
-                    nodos_dict[k].append((x, y))
-                    break
-        return nodos_dict, divisiones_validas, (x_min, x_max)
-
     def _calcular(self):
-        # Interpolacion de f y g por tramos, luego integracion de |f-g|
-        nf, ng, df, dg = self._convertir_a_dominio()
+        # Interpolacion spline de f y g, luego integracion de |f-g|
+        nf, ng, _, _ = self._convertir_a_dominio()
         nf = self._agregar_nodos_virtuales_limite(nf)
         ng = self._agregar_nodos_virtuales_limite(ng)
 
-        nodos_f_pack = self._asignar_tramos(nf, df)
-        nodos_g_pack = self._asignar_tramos(ng, dg)
+        self.f_interp, rango_f = construir_spline_natural(nf)
+        self.g_interp, rango_g = construir_spline_natural(ng)
 
-        if nodos_f_pack[0] is None:
+        if self.f_interp is None or rango_f is None:
             messagebox.showerror("Error", "f necesita al menos 2 nodos con x distintas")
             return
-        if nodos_g_pack[0] is None:
+        if self.g_interp is None or rango_g is None:
             messagebox.showerror("Error", "g necesita al menos 2 nodos con x distintas")
-            return
-
-        nodos_dict_f, df_calc, rango_f = nodos_f_pack
-        nodos_dict_g, dg_calc, rango_g = nodos_g_pack
-
-        self.f_interp = interpolante_por_trozos(nodos_dict_f, df_calc, rango_f[0], rango_f[1])
-        self.g_interp = interpolante_por_trozos(nodos_dict_g, dg_calc, rango_g[0], rango_g[1])
-
-        if self.f_interp is None:
-            messagebox.showerror("Error",
-                "Faltan nodos en algun tramo de f (minimo 2 por tramo)")
-            return
-        if self.g_interp is None:
-            messagebox.showerror("Error",
-                "Faltan nodos en algun tramo de g (minimo 2 por tramo)")
             return
 
         x_ini = max(rango_f[0], rango_g[0])
@@ -670,7 +584,7 @@ class AppParte1:
         if x_fin - x_ini <= 1e-12:
             messagebox.showerror(
                 "Error",
-                "No hay traslape en x entre f y g (segun sus nodos).")
+                "No hay coincidencia en x entre f y g (segun sus nodos)")
             self.f_interp = None
             self.g_interp = None
             self.rango_f = None
@@ -686,7 +600,7 @@ class AppParte1:
         if not np.isfinite(area):
             messagebox.showerror(
                 "Error",
-                "El area resulto no valida (NaN/Inf). Revise nodos repetidos en x o reduzca nodos por tramo.")
+                "El area resulto no valida (NaN/Inf). Revise nodos repetidos en x o reduzca nodos por tramo")
             self.lbl_resultado.config(text="Area: ---")
             return
         self.lbl_resultado.config(text=f"Area ~ {area:.6f}")
