@@ -135,14 +135,29 @@ def area_entre_curvas_por_subintervalos(f, g, puntos_corte, n=200):
         ai, bi = cortes[i], cortes[i + 1]
         if bi - ai <= 1e-12:
             continue
-        xm = 0.5 * (ai + bi)
+        xs_probe = np.linspace(ai, bi, 41)
+        valid_idx = []
+        for k, x in enumerate(xs_probe):
+            try:
+                f(x)
+                g(x)
+                valid_idx.append(k)
+            except Exception:
+                pass
+
+        if not valid_idx:
+            continue
+
+        li = float(xs_probe[valid_idx[0]])
+        ri = float(xs_probe[valid_idx[-1]])
+        if ri - li <= 1e-12:
+            continue
+
         try:
-            f(xm)
-            g(xm)
+            area_total += area_entre_curvas(f, g, li, ri, n=n)
+            n_usados += 1
         except Exception:
             continue
-        area_total += area_entre_curvas(f, g, ai, bi, n=n)
-        n_usados += 1
     return area_total, n_usados
 
 
@@ -160,9 +175,6 @@ class AppParte1:
         self.img_h = 0
         self.offset_x = 0
         self.offset_y = 0
-
-        self.a, self.b = 0.0, 10.0
-        self.c, self.d = 0.0, 10.0
 
         self.lim_px_a = None
         self.lim_px_b = None
@@ -194,19 +206,7 @@ class AppParte1:
 
         self._separador(panel)
 
-        tk.Label(panel, text="Valores del dominio", font=("Arial", 9, "bold")).pack(anchor=tk.W)
-        fr_lim = tk.Frame(panel)
-        fr_lim.pack(fill=tk.X, pady=2)
-
-        self.entries_lim = {}
-        for i, (nombre, valor) in enumerate([("a", "0"), ("b", "10"), ("c", "0"), ("d", "10")]):
-            tk.Label(fr_lim, text=f"{nombre}=").grid(row=i//2, column=(i%2)*2, sticky=tk.E)
-            e = tk.Entry(fr_lim, width=8)
-            e.grid(row=i//2, column=(i%2)*2+1, padx=2, pady=1)
-            e.insert(0, valor)
-            self.entries_lim[nombre] = e
-
-        tk.Button(panel, text="Fijar valores", command=self._fijar_valores).pack(fill=tk.X, pady=3)
+        tk.Label(panel, text="Definir limites en radios de abajo", font=("Arial", 9, "bold")).pack(anchor=tk.W)
 
         self._separador(panel)
 
@@ -276,7 +276,7 @@ class AppParte1:
         tk.Button(panel, text="CALCULAR AREA", command=self._calcular,
                   bg="#2E7D32", fg="white", font=("Arial", 10, "bold")).pack(fill=tk.X, pady=4)
 
-        self.lbl_resultado = tk.Label(panel, text="Area: --- u^2",
+        self.lbl_resultado = tk.Label(panel, text="Area: --- px^2",
                                        font=("Arial", 11, "bold"), fg="#1565C0")
         self.lbl_resultado.pack(pady=4)
 
@@ -357,32 +357,7 @@ class AppParte1:
         self._redibujar()
 
     def _pixel_a_coord(self, px, py):
-        dx = self.lim_px_b - self.lim_px_a
-        dy = self.lim_px_c - self.lim_px_d
-        if abs(dx) < 1:
-            dx = 1
-        if abs(dy) < 1:
-            dy = 1
-        x = self.a + (px - self.lim_px_a) / dx * (self.b - self.a)
-        y = self.d - (py - self.lim_px_d) / dy * (self.d - self.c)
-        return x, y
-
-    def _fijar_valores(self):
-        try:
-            self.a = float(self.entries_lim["a"].get())
-            self.b = float(self.entries_lim["b"].get())
-            self.c = float(self.entries_lim["c"].get())
-            self.d = float(self.entries_lim["d"].get())
-            self.f_interp = None
-            self.g_interp = None
-            self.rango_f = None
-            self.rango_g = None
-            self.rango_area = None
-            self.lbl_resultado.config(text="Area: --- u^2")
-            self._redibujar()
-            messagebox.showinfo("Listo", f"Dominio: [{self.a}, {self.b}] x [{self.c}, {self.d}]")
-        except ValueError:
-            messagebox.showerror("Error", "Ingrese valores numericos validos")
+        return float(px), float(py)
 
     def _click(self, event):
         if self.imagen_pil is None:
@@ -409,12 +384,15 @@ class AppParte1:
         if modo == "divisiones":
             curva = self.var_curva.get()
             divisiones = self.divisiones_f_px if curva == "f" else self.divisiones_g_px
+            nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
             if len(divisiones) >= 2:
                 messagebox.showinfo("", "Maximo 2 divisiones por curva (3 tramos)")
                 return
             div_px = event.x
             div_py = event.y
             divisiones.append((div_px, div_py))
+            if not any(abs(px - div_px) <= 2 for (px, _) in nodos):
+                nodos.append((div_px, div_py))
         else:
             curva = self.var_curva.get()
             nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
@@ -447,8 +425,14 @@ class AppParte1:
         curva = self.var_curva.get()
         if modo == "divisiones":
             divisiones = self.divisiones_f_px if curva == "f" else self.divisiones_g_px
+            nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
             if divisiones:
-                divisiones.pop()
+                div_px, div_py = divisiones.pop()
+                for i in range(len(nodos) - 1, -1, -1):
+                    px, py = nodos[i]
+                    if abs(px - div_px) <= 2 and abs(py - div_py) <= 6:
+                        nodos.pop(i)
+                        break
         else:
             nodos = self.nodos_f_px if curva == "f" else self.nodos_g_px
             if nodos:
@@ -475,7 +459,7 @@ class AppParte1:
         self.rango_f = None
         self.rango_g = None
         self.rango_area = None
-        self.lbl_resultado.config(text="Area: --- u^2")
+        self.lbl_resultado.config(text="Area: --- px^2")
         self._redibujar()
 
     def _redibujar(self):
@@ -491,7 +475,7 @@ class AppParte1:
                                     self.lim_px_a + 6, self.offset_y + self.img_h // 2 + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
             self.canvas.create_text(self.lim_px_a, self.offset_y - 14,
-                                    text=f"a={self.a:.1f}", fill="#FF0000",
+                                    text=f"a={self.lim_px_a:.1f}px", fill="#FF0000",
                                     font=("Consolas", 10, "bold"), tags="limite")
 
         if self.lim_px_b is not None:
@@ -502,7 +486,7 @@ class AppParte1:
                                     self.lim_px_b + 6, self.offset_y + self.img_h // 2 + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
             self.canvas.create_text(self.lim_px_b, self.offset_y - 14,
-                                    text=f"b={self.b:.1f}", fill="#FF0000",
+                                    text=f"b={self.lim_px_b:.1f}px", fill="#FF0000",
                                     font=("Consolas", 10, "bold"), tags="limite")
 
         if self.lim_px_c is not None:
@@ -513,7 +497,7 @@ class AppParte1:
                                     self.offset_x + self.img_w // 2 + 6, self.lim_px_c + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
             self.canvas.create_text(self.offset_x - 5, self.lim_px_c,
-                                    text=f"c={self.c:.1f}", fill="#FF0000",
+                                    text=f"c={self.lim_px_c:.1f}px", fill="#FF0000",
                                     font=("Consolas", 10, "bold"), anchor=tk.E, tags="limite")
 
         if self.lim_px_d is not None:
@@ -524,7 +508,7 @@ class AppParte1:
                                     self.offset_x + self.img_w // 2 + 6, self.lim_px_d + 6,
                                     fill="#FF0000", outline="white", width=1, tags="limite")
             self.canvas.create_text(self.offset_x - 5, self.lim_px_d,
-                                    text=f"d={self.d:.1f}", fill="#FF0000",
+                                    text=f"d={self.lim_px_d:.1f}px", fill="#FF0000",
                                     font=("Consolas", 10, "bold"), anchor=tk.E, tags="limite")
 
         for curva, divisiones, nodos in [("f", self.divisiones_f_px, self.nodos_f_px),
@@ -539,7 +523,7 @@ class AppParte1:
                                         fill=color_div, width=3, dash=(5, 3), tags="division")
                 x_dom, _ = self._pixel_a_coord(div_px, 0)
                 self.canvas.create_text(div_px, py_top - 10,
-                                        text=f"{curva} div ({x_dom:.2f})",
+                                        text=f"{curva} div ({x_dom:.1f}px)",
                                         fill=color_div, font=("Consolas", 9), tags="division")
 
         pares = [("f", self.nodos_f_px, "#4488FF"), ("g", self.nodos_g_px, "#00CC66")]
@@ -550,7 +534,7 @@ class AppParte1:
                                         fill=color, outline="white", width=1, tags="nodo")
                 x_dom, y_dom = self._pixel_a_coord(px, py)
                 self.canvas.create_text(px+10, py-10,
-                                        text=f"({x_dom:.2f}, {y_dom:.2f})",
+                                        text=f"({x_dom:.1f}px, {y_dom:.1f}px)",
                                         fill=color, font=("Consolas", 9), tags="nodo")
 
         self.lbl_estado.config(
@@ -561,10 +545,10 @@ class AppParte1:
         if self.imagen_pil is None:
             return
         x, y = self._pixel_a_coord(event.x, event.y)
-        self.lbl_info.config(text=f"x = {x:.3f}   y = {y:.3f}")
+        self.lbl_info.config(text=f"x = {x:.1f}px   y = {y:.1f}px")
 
-    def _convertir_a_dominio(self):
-        # Todo click se pasa de pixeles a coordenadas del dominio real
+    def _obtener_datos_px(self):
+        # Retorna nodos y divisiones en pixeles.
         nf = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_f_px]
         ng = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_g_px]
         df = sorted([self._pixel_a_coord(dpx, 0)[0] for (dpx, _) in self.divisiones_f_px])
@@ -573,12 +557,27 @@ class AppParte1:
 
     def _calcular(self):
         # Interpolacion por tramos (hasta 3) para cada curva y suma de area por subintervalos.
-        nf, ng, df, dg = self._convertir_a_dominio()
+        if self.imagen_pil is None:
+            messagebox.showerror("Error", "Primero cargue una imagen")
+            return
+        if None in (self.lim_px_a, self.lim_px_b, self.lim_px_c, self.lim_px_d):
+            messagebox.showerror("Error", "Faltan limites en imagen (a,b,c,d)")
+            return
+
+        x_left = float(min(self.lim_px_a, self.lim_px_b))
+        x_right = float(max(self.lim_px_a, self.lim_px_b))
+        if x_right - x_left <= 1e-9:
+            messagebox.showerror("Error", "Limites a y b invalidos")
+            return
+
+        nf, ng, df, dg = self._obtener_datos_px()
+        nf = [p for p in nf if x_left <= p[0] <= x_right]
+        ng = [p for p in ng if x_left <= p[0] <= x_right]
         self.f_interp, rango_f, df_calc = construir_interpolante_por_trozos_spline(
-            nf, df, self.a, self.b
+            nf, df, x_left, x_right
         )
         self.g_interp, rango_g, dg_calc = construir_interpolante_por_trozos_spline(
-            ng, dg, self.a, self.b
+            ng, dg, x_left, x_right
         )
 
         if self.f_interp is None or rango_f is None:
@@ -606,7 +605,7 @@ class AppParte1:
             self.rango_f = None
             self.rango_g = None
             self.rango_area = None
-            self.lbl_resultado.config(text="Area: --- u^2")
+            self.lbl_resultado.config(text="Area: --- px^2")
             return
 
         cortes = [x_ini, x_fin] + [d for d in (df_calc + dg_calc) if x_ini < d < x_fin]
@@ -620,18 +619,18 @@ class AppParte1:
             self.rango_f = None
             self.rango_g = None
             self.rango_area = None
-            self.lbl_resultado.config(text="Area: --- u^2")
+            self.lbl_resultado.config(text="Area: --- px^2")
             return
 
         self.rango_area = (x_ini, x_fin)
-        self.lbl_resultado.config(text=f"Area ~ {area:.6f} u^2")
+        self.lbl_resultado.config(text=f"Area ~ {area:.6f} px^2")
 
     def _mostrar_graficas(self):
         if self.f_interp is None or self.g_interp is None:
             messagebox.showinfo("", "Primero calcule el area")
             return
 
-        nf, ng, df, dg = self._convertir_a_dominio()
+        nf, ng, df, dg = self._obtener_datos_px()
 
         if self.rango_f is None or self.rango_g is None or self.rango_area is None:
             messagebox.showinfo("", "Primero calcule el area")
@@ -646,11 +645,13 @@ class AppParte1:
                     vals.append(np.nan)
             return np.array(vals, dtype=float)
 
-        xs_f = np.linspace(self.a, self.b, 700)
+        x_left = float(min(self.lim_px_a, self.lim_px_b))
+        x_right = float(max(self.lim_px_a, self.lim_px_b))
+        xs_f = np.linspace(x_left, x_right, 700)
         ys_f = evaluar_seguro(self.f_interp, xs_f)
-        xs_g = np.linspace(self.a, self.b, 700)
+        xs_g = np.linspace(x_left, x_right, 700)
         ys_g = evaluar_seguro(self.g_interp, xs_g)
-        xs_area = np.linspace(self.a, self.b, 800)
+        xs_area = np.linspace(x_left, x_right, 800)
         yf_area = evaluar_seguro(self.f_interp, xs_area)
         yg_area = evaluar_seguro(self.g_interp, xs_area)
         mask_area = np.isfinite(yf_area) & np.isfinite(yg_area)
@@ -669,14 +670,14 @@ class AppParte1:
         ax.plot(xp_f, yp_f, "o", color="#4488FF", markersize=5)
         ax.plot(xp_g, yp_g, "o", color="#00CC66", markersize=5)
 
-        for d in [d for d in df if self.a < d < self.b]:
+        for d in [d for d in df if x_left < d < x_right]:
             ax.axvline(x=d, color="#FF6600", linewidth=1, linestyle="--", alpha=0.6)
             try:
                 ax.plot(d, self.f_interp(d), "D", color="#FF6600", markersize=6, zorder=5)
             except Exception:
                 pass
 
-        for d in [d for d in dg if self.a < d < self.b]:
+        for d in [d for d in dg if x_left < d < x_right]:
             ax.axvline(x=d, color="#CC9900", linewidth=1, linestyle="--", alpha=0.6)
             try:
                 ax.plot(d, self.g_interp(d), "D", color="#CC9900", markersize=6, zorder=5)
@@ -686,8 +687,10 @@ class AppParte1:
         if df or dg:
             ax.plot([], [], "D", color="#FF6600", markersize=6, label="Divisiones")
 
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
+        ax.set_xlabel("x (px)")
+        ax.set_ylabel("y (px)")
+        # En pixeles el eje Y crece hacia abajo; invertimos para que coincida con la imagen.
+        ax.invert_yaxis()
         ax.legend()
         ax.grid(True, alpha=0.3)
         plt.tight_layout()
