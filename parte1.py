@@ -142,6 +142,22 @@ class AppParte1:
 
         self._separador(panel)
 
+        tk.Label(panel, text="Valores del dominio", font=("Arial", 9, "bold")).pack(anchor=tk.W)
+        fr_lim = tk.Frame(panel)
+        fr_lim.pack(fill=tk.X, pady=2)
+
+        self.entries_lim = {}
+        for i, (nombre, valor) in enumerate([("a", "0"), ("b", "10"), ("c", "0"), ("d", "10")]):
+            tk.Label(fr_lim, text=f"{nombre}=").grid(row=i//2, column=(i%2)*2, sticky=tk.E)
+            e = tk.Entry(fr_lim, width=8)
+            e.grid(row=i//2, column=(i%2)*2+1, padx=2, pady=1)
+            e.insert(0, valor)
+            self.entries_lim[nombre] = e
+
+        tk.Button(panel, text="Fijar valores", command=self._fijar_valores).pack(fill=tk.X, pady=3)
+
+        self._separador(panel)
+
         tk.Label(panel, text="Curva activa", font=("Arial", 9, "bold")).pack(anchor=tk.W)
         self.var_curva = tk.StringVar(value="f")
         fr_curva = tk.Frame(panel)
@@ -302,6 +318,20 @@ class AppParte1:
         px = self.lim_px_a + (x - self.a) / (self.b - self.a) * dx
         py = self.lim_px_d + (self.d - y) / (self.d - self.c) * dy
         return px, py
+
+    def _fijar_valores(self):
+        try:
+            self.a = float(self.entries_lim["a"].get())
+            self.b = float(self.entries_lim["b"].get())
+            self.c = float(self.entries_lim["c"].get())
+            self.d = float(self.entries_lim["d"].get())
+            self.f_interp = None
+            self.g_interp = None
+            self.lbl_resultado.config(text="Area: ---")
+            self._redibujar()
+            messagebox.showinfo("Listo", f"Dominio: [{self.a}, {self.b}] x [{self.c}, {self.d}]")
+        except ValueError:
+            messagebox.showerror("Error", "Ingrese valores numericos validos")
 
     def _click(self, event):
         if self.imagen_pil is None:

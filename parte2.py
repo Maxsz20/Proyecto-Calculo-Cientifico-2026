@@ -131,6 +131,22 @@ class AppParte2:
 
         self._separador(panel)
 
+        tk.Label(panel, text="Valores del dominio", font=("Arial", 9, "bold")).pack(anchor=tk.W)
+        fr_lim = tk.Frame(panel)
+        fr_lim.pack(fill=tk.X, pady=2)
+
+        self.entries_lim = {}
+        for i, (nombre, valor) in enumerate([("a", "0"), ("b", "10"), ("c", "0"), ("d", "10")]):
+            tk.Label(fr_lim, text=f"{nombre}=").grid(row=i//2, column=(i%2)*2, sticky=tk.E)
+            e = tk.Entry(fr_lim, width=8)
+            e.grid(row=i//2, column=(i%2)*2+1, padx=2, pady=1)
+            e.insert(0, valor)
+            self.entries_lim[nombre] = e
+
+        tk.Button(panel, text="Fijar valores", command=self._fijar_valores).pack(fill=tk.X, pady=3)
+
+        self._separador(panel)
+
         tk.Label(panel, text="Curva activa", font=("Arial", 9, "bold")).pack(anchor=tk.W)
         self.var_curva = tk.StringVar(value="C1")
         fr_curva = tk.Frame(panel)
@@ -143,7 +159,7 @@ class AppParte2:
         self._separador(panel)
 
         tk.Label(panel, text="Modo de click", font=("Arial", 9, "bold")).pack(anchor=tk.W)
-        self.var_modo = tk.StringVar(value="limites")
+        self.var_modo = tk.StringVar(value="nodos")
         fr_modo = tk.Frame(panel)
         fr_modo.pack(fill=tk.X)
         tk.Radiobutton(fr_modo, text="Colocar nodos",
@@ -193,7 +209,7 @@ class AppParte2:
 
         self._separador(panel)
 
-        tk.Button(panel, text="Deshacer ultimo cambio",
+        tk.Button(panel, text="Deshacer ultimo nodo",
                   command=self._deshacer).pack(fill=tk.X, pady=2)
         tk.Button(panel, text="Limpiar curva activa",
                   command=self._limpiar).pack(fill=tk.X, pady=2)
@@ -224,8 +240,6 @@ class AppParte2:
 
         self.lbl_info = tk.Label(panel, text="", font=("Arial", 8), fg="gray40")
         self.lbl_info.pack(side=tk.BOTTOM, pady=2)
-
-        self._actualizar_modo()
 
     def _separador(self, parent):
         tk.Frame(parent, height=2, bg="gray70").pack(fill=tk.X, pady=6)
@@ -301,6 +315,23 @@ class AppParte2:
         px = self.lim_px_a + (x - self.a) / (self.b - self.a) * dx
         py = self.lim_px_d + (self.d - y) / (self.d - self.c) * dy
         return px, py
+
+    def _fijar_valores(self):
+        try:
+            self.a = float(self.entries_lim["a"].get())
+            self.b = float(self.entries_lim["b"].get())
+            self.c = float(self.entries_lim["c"].get())
+            self.d = float(self.entries_lim["d"].get())
+            self.area_c1 = None
+            self.area_c2 = None
+            self.area_entre = None
+            self.lbl_area_c1.config(text="Area C1: ---")
+            self.lbl_area_c2.config(text="Area C2: ---")
+            self.lbl_resultado.config(text="Area entre curvas: ---")
+            self._redibujar()
+            messagebox.showinfo("Listo", f"Dominio: [{self.a}, {self.b}] x [{self.c}, {self.d}]")
+        except ValueError:
+            messagebox.showerror("Error", "Ingrese valores numericos validos")
 
     def _click(self, event):
         if self.imagen_pil is None:
