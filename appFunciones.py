@@ -704,7 +704,7 @@ class AppFunciones:
                 pass
 
         if df or dg:
-            ax.plot([], [], "D", color="#FF6600", markersize=6, label="Divisiones")
+            ax.plot([], [], "D", color="#FF6600", markersize=6, label="Divisiones de Subintervalo")
 
         ax.set_xlabel("x (px)")
         ax.set_ylabel("y (px)")
