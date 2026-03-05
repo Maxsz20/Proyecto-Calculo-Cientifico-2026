@@ -22,6 +22,7 @@ Este README contiene solo instrucciones de uso y consideraciones practicas de la
 - Primero se deben definir los limites (`a, b, c, d`) dando click sobre la imagen y luego colocar nodos o divisiones
 - Las divisiones son opcionales
 - Si se colocan divisiones, deben marcarse sobre la curva correspondiente
+- El area entre curvas se calcula solo donde ambas curvas quedan definidas por sus nodos (rango comun): desde el primer punto en x compartido hasta el ultimo punto en x compartido
 - El resultado de area se muestra en `px^2`
 
 ## Are entre curvas cerradas (Relaciones) - appRelaciones.py
