@@ -1,4 +1,4 @@
-﻿import numpy as np
+import numpy as np
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
@@ -130,6 +130,7 @@ def area_entre_curvas_por_subintervalos(f, g, puntos_corte, n=200):
     # Integra |f-g| por cada subintervalo y acumula solo donde ambas curvas esten definidas
     area_total = 0.0
     n_usados = 0
+    detalle = []
     cortes = sorted(set(float(x) for x in puntos_corte))
     for i in range(len(cortes) - 1):
         ai, bi = cortes[i], cortes[i + 1]
@@ -154,11 +155,13 @@ def area_entre_curvas_por_subintervalos(f, g, puntos_corte, n=200):
             continue
 
         try:
-            area_total += area_entre_curvas(f, g, li, ri, n=n)
+            area_i = area_entre_curvas(f, g, li, ri, n=n)
+            area_total += area_i
             n_usados += 1
+            detalle.append((li, ri, area_i))
         except Exception:
             continue
-    return area_total, n_usados
+    return area_total, n_usados, detalle
 
 
 class AppFunciones:
@@ -190,6 +193,7 @@ class AppFunciones:
         self.rango_f = None
         self.rango_g = None
         self.rango_area = None
+        self.detalle_subareas = []
         self.max_zoom_imagen = 1.6
         self.factor_llenado_canvas = 0.92
         self.radio_nodo_px = 6
@@ -279,7 +283,9 @@ class AppFunciones:
         self.lbl_resultado = tk.Label(panel, text="Area: --- px^2",
                                        font=("Arial", 11, "bold"), fg="#1565C0")
         self.lbl_resultado.pack(pady=4)
-
+        self.lbl_subareas = tk.Label(panel, text="", font=("Consolas", 8),
+                                      fg="gray30", justify=tk.LEFT, anchor=tk.W)
+        self.lbl_subareas.pack(fill=tk.X, pady=(0, 4))
         tk.Button(panel, text="Ver graficas",
                   command=self._mostrar_graficas).pack(fill=tk.X, pady=2)
 
@@ -459,7 +465,9 @@ class AppFunciones:
         self.rango_f = None
         self.rango_g = None
         self.rango_area = None
+        self.detalle_subareas = []
         self.lbl_resultado.config(text="Area: --- px^2")
+        self.lbl_subareas.config(text="")
         self._redibujar()
 
     def _redibujar(self):
@@ -548,7 +556,6 @@ class AppFunciones:
         self.lbl_info.config(text=f"x = {x:.1f}px   y = {y:.1f}px")
 
     def _obtener_datos_px(self):
-        # Retorna nodos y divisiones en pixeles.
         nf = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_f_px]
         ng = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_g_px]
         df = sorted([self._pixel_a_coord(dpx, 0)[0] for (dpx, _) in self.divisiones_f_px])
@@ -556,7 +563,6 @@ class AppFunciones:
         return nf, ng, df, dg
 
     def _calcular(self):
-        # Interpolacion por tramos (hasta 3) para cada curva y suma de area por subintervalos.
         if self.imagen_pil is None:
             messagebox.showerror("Error", "Primero cargue una imagen")
             return
@@ -605,11 +611,15 @@ class AppFunciones:
             self.rango_f = None
             self.rango_g = None
             self.rango_area = None
+            self.detalle_subareas = []
             self.lbl_resultado.config(text="Area: --- px^2")
+            self.lbl_subareas.config(text="")
             return
 
         cortes = [x_ini, x_fin] + [d for d in (df_calc + dg_calc) if x_ini < d < x_fin]
-        area, n_usados = area_entre_curvas_por_subintervalos(self.f_interp, self.g_interp, cortes, n=200)
+        area, n_usados, detalle = area_entre_curvas_por_subintervalos(
+            self.f_interp, self.g_interp, cortes, n=200
+        )
         if n_usados == 0 or not np.isfinite(area):
             messagebox.showerror(
                 "Error",
@@ -619,11 +629,20 @@ class AppFunciones:
             self.rango_f = None
             self.rango_g = None
             self.rango_area = None
+            self.detalle_subareas = []
             self.lbl_resultado.config(text="Area: --- px^2")
+            self.lbl_subareas.config(text="")
             return
 
         self.rango_area = (x_ini, x_fin)
-        self.lbl_resultado.config(text=f"Area ~ {area:.6f} px^2")
+        self.detalle_subareas = detalle
+        self.lbl_resultado.config(text=f"Area total ~ {area:.6f} px^2")
+        hay_subintervalos = len(sorted(set(float(x) for x in cortes))) > 2
+        if hay_subintervalos:
+            lineas = [f"[{li:.1f}, {ri:.1f}] -> {ai:.6f} px^2" for li, ri, ai in detalle]
+            self.lbl_subareas.config(text="Areas por subintervalo:\n" + "\n".join(lineas))
+        else:
+            self.lbl_subareas.config(text="")
 
     def _mostrar_graficas(self):
         if self.f_interp is None or self.g_interp is None:
@@ -689,7 +708,6 @@ class AppFunciones:
 
         ax.set_xlabel("x (px)")
         ax.set_ylabel("y (px)")
-        # En pixeles el eje Y crece hacia abajo; invertimos para que coincida con la imagen.
         ax.invert_yaxis()
         ax.legend()
         ax.grid(True, alpha=0.3)
