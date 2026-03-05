@@ -86,7 +86,7 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, es
 	%==== ITEM 1 ====
 	\item \textbf{Preferencia de base polinomial para integración.}
 
-	El polinomio interpolante $p_n(x)$ se puede expresar en distintas bases del espacio $\Pi_n$: la base canónica $\{1,x,x^2,\ldots,x^n\}$, la base de Lagrange $\{L_0(x),L_1(x),\ldots,L_n(x)\}$ o la base de diferencias divididas de Newton. Puesto que el polinomio interpolante es único sin importar la base que se emplee, las tres representaciones conducen al mismo valor $I_n(f)$. No obstante, para efectos del cálculo de integrales, la \textbf{base de Lagrange} ofrece una ventaja clara \cite{burden02}.
+	El polinomio interpolante $p_n(x)$ se puede expresar en distintas bases del espacio $\Pi_n$: la base canónica $\{1,x,x^2,\ldots,x^n\}$, la base de Lagrange $\{L_0(x),L_1(x),\ldots,L_n(x)\}$ o la base de diferencias divididas de Newton. Puesto que el polinomio interpolante es único sin importar la base que se emplee, las tres representaciones conducen al mismo valor $I_n(f)$ No obstante, para efectos del cálculo de integrales, la \textbf{base de Lagrange} ofrece una ventaja clara \cite{burden02}.
 
 	Al escribir
 	\[
@@ -96,7 +96,7 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, es
 	\[
 	I_n(f) = \int_a^b p_n(x)\,dx = \sum_{i=0}^{n} f(x_i) \underbrace{\int_a^b L_i(x)\,dx}_{A_i} = \sum_{i=0}^{n} A_i\,f(x_i).
 	\]
-	Lo importante es que los coeficientes $A_i$ dependen \textit{únicamente de los nodos} $x_0,x_1,\ldots,x_n$ y del intervalo $[a,b]$, pero no de la función $f$. Esto permite calcular los pesos una sola vez y reutilizarlos para cualquier función. Con la base canónica o la de Newton, esta separación no es tan inmediata, pues los coeficientes del polinomio involucran los valores $f(x_i)$ de manera más entrelazada.
+	Lo importante es que los coeficientes $A_i$ dependen \textit{únicamente de los nodos} $x_0,x_1,\ldots,x_n$ y del intervalo $[a,b]$, pero no de la función $f$ Esto permite calcular los pesos una sola vez y reutilizarlos para cualquier función. Con la base canónica o la de Newton, esta separación no es tan inmediata, pues los coeficientes del polinomio involucran los valores $f(x_i)$ de manera más entrelazada.
 
 	%==== ITEM 2 ====
 	\item \textbf{Método de los coeficientes indeterminados.}
@@ -109,12 +109,12 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, es
 	\[
 	\sum_{i=0}^{n} A_i\,x_i^k = \int_a^b x^k\,dx, \quad k=0,1,\ldots,n.
 	\]
-	Este sistema siempre tiene solución única ya que la matriz asociada es de tipo Vandermonde (invertible cuando los nodos son distintos). La ventaja principal es que permite obtener los pesos resolviendo un sistema lineal, sin pasar por la construcción del polinomio ni por el cálculo explícito de las integrales de los $L_i(x)$. Adicionalmente, resulta sencillo verificar si la fórmula posee un \textit{grado de exactitud} superior al esperado: basta comprobar si también resulta exacta para $f(x) = x^{n+1}, x^{n+2},\ldots$
+	Este sistema siempre tiene solución única ya que la matriz asociada es de tipo Vandermonde (invertible cuando los nodos son distintos). La ventaja principal es que permite obtener los pesos resolviendo un sistema lineal, sin pasar por la construcción del polinomio ni por el cálculo explícito de las integrales de los $L_i(x)$ Adicionalmente, resulta sencillo verificar si la fórmula posee un \textit{grado de exactitud} superior al esperado: basta comprobar si también resulta exacta para $f(x) = x^{n+1}, x^{n+2},\ldots$
 
 	%==== ITEM 3 ====
-	\item \textbf{Cuadratura con nodos equidistantes en $[0,1]$.}
+	\item \textbf{Cuadratura con nodos equidistantes en $[0,1]$}
 
-	Consideremos $x_0=0$, $x_1=\tfrac{1}{2}$ y $x_2=1$ con $y_i = f(x_i)$ para $i=0,1,2$. Buscamos $A_0, A_1, A_2$ tales que
+	Consideremos $x_0=0$, $x_1=\tfrac{1}{2}$ y $x_2=1$ con $y_i = f(x_i)$ para $i=0,1,2$ Buscamos $A_0, A_1, A_2$ tales que
 	\[
 	I_2(f) = A_0\,y_0 + A_1\,y_1 + A_2\,y_2.
 	\]
@@ -129,9 +129,9 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, es
 	\[
 	\tfrac{1}{2}A_1 - \tfrac{1}{4}A_1 = \tfrac{1}{2} - \tfrac{1}{3} \quad\Longrightarrow\quad \tfrac{1}{4}A_1 = \tfrac{1}{6} \quad\Longrightarrow\quad A_1 = \frac{2}{3}.
 	\]
-	Sustituyendo $A_1$ en (\ref{eq:s2}): $\tfrac{1}{2}\cdot\tfrac{2}{3} + A_2 = \tfrac{1}{2}$, de donde $A_2 = \tfrac{1}{2} - \tfrac{1}{3} = \tfrac{1}{6}$.
+	Sustituyendo $A_1$ en (\ref{eq:s2}): $\tfrac{1}{2}\cdot\tfrac{2}{3} + A_2 = \tfrac{1}{2}$, de donde $A_2 = \tfrac{1}{2} - \tfrac{1}{3} = \tfrac{1}{6}$
 
-	De (\ref{eq:s1}): $A_0 = 1 - \tfrac{2}{3} - \tfrac{1}{6} = \tfrac{1}{6}$.
+	De (\ref{eq:s1}): $A_0 = 1 - \tfrac{2}{3} - \tfrac{1}{6} = \tfrac{1}{6}$
 
 	Se obtiene entonces:
 	\[
@@ -141,7 +141,7 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, es
 	Los valores $(A_0,A_1,A_2)^T = \left(\tfrac{1}{6},\,\tfrac{2}{3},\,\tfrac{1}{6}\right)^T$ son los \textbf{pesos de cuadratura}, también conocidos como coeficientes de Newton-Cotes \cite{mathworld_newtoncotes}. Cada $A_i$ representa la contribución relativa del valor $f(x_i)$ en la aproximación de la integral. Vale la pena mencionar que esta fórmula coincide con la conocida \textit{regla de Simpson} aplicada a $[0,1]$ \cite{cheney08, burden02}.
 
 	\begin{itemize}
-		\item \textbf{Exactitud para $f \in \Pi_3$.} La fórmula $I_2(f)$ fue diseñada para ser exacta en $\Pi_2$, pues se usaron las condiciones $f=1,\,x,\,x^2$. Sin embargo, también resulta exacta para polinomios de grado 3. Como la integral y la cuadratura son operadores lineales, basta verificar para $f(x) = x^3$ (ya que $\{1,x,x^2,x^3\}$ es base de $\Pi_3$):
+		\item \textbf{Exactitud para $f \in \Pi_3$} La fórmula $I_2(f)$ fue diseñada para ser exacta en $\Pi_2$, pues se usaron las condiciones $f=1,\,x,\,x^2$ Sin embargo, también resulta exacta para polinomios de grado 3. Como la integral y la cuadratura son operadores lineales, basta verificar para $f(x) = x^3$ (ya que $\{1,x,x^2,x^3\}$ es base de $\Pi_3$):
 		\[
 		I_2(x^3) = \frac{1}{6}\cdot 0^3 + \frac{2}{3}\cdot\left(\frac{1}{2}\right)^3 + \frac{1}{6}\cdot 1^3 = \frac{2}{3}\cdot\frac{1}{8} + \frac{1}{6} = \frac{1}{12} + \frac{2}{12} = \frac{1}{4}.
 		\]
@@ -149,7 +149,7 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, es
 		\[
 		\int_0^1 x^3\,dx = \frac{x^4}{4}\bigg|_0^1 = \frac{1}{4}.
 		\]
-		Dado que $I_2(x^3) = \int_0^1 x^3\,dx$ y ya se tiene exactitud para $1,\,x,\,x^2$, se concluye por linealidad que $I_2(f) = \int_0^1 f(x)\,dx$ para todo $f\in\Pi_3$. $\blacksquare$
+		Dado que $I_2(x^3) = \int_0^1 x^3\,dx$ y ya se tiene exactitud para $1,\,x,\,x^2$, se concluye por linealidad que $I_2(f) = \int_0^1 f(x)\,dx$ para todo $f\in\Pi_3$ $\blacksquare$
 
 		Este grado de exactitud extra es una propiedad particular de la regla de Simpson que se debe a la simetría de los nodos respecto al centro del intervalo \cite{mathworld_simpson}.
 	\end{itemize}
@@ -157,7 +157,7 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, es
 	%==== ITEM 4 ====
 	\item \textbf{Cuadratura con nodos no equidistantes.}
 
-	Ahora tomemos $x_0=0$, $x_1=\tfrac{1}{3}$ y $x_2=1$. Aplicando nuevamente el método:
+	Ahora tomemos $x_0=0$, $x_1=\tfrac{1}{3}$ y $x_2=1$ Aplicando nuevamente el método:
 	\begin{align}
 		f(x)=1:   &\quad A_0 + A_1 + A_2 = 1 \label{eq:n1}\\[4pt]
 		f(x)=x:   &\quad \tfrac{1}{3}A_1 + A_2 = \tfrac{1}{2} \label{eq:n2}\\[4pt]
@@ -168,9 +168,9 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, es
 	\[
 	\left(\tfrac{1}{3} - \tfrac{1}{9}\right)A_1 = \tfrac{1}{2} - \tfrac{1}{3} \quad\Longrightarrow\quad \tfrac{2}{9}\,A_1 = \tfrac{1}{6} \quad\Longrightarrow\quad A_1 = \frac{3}{4}.
 	\]
-	De (\ref{eq:n2}): $A_2 = \tfrac{1}{2} - \tfrac{1}{3}\cdot\tfrac{3}{4} = \tfrac{1}{2} - \tfrac{1}{4} = \tfrac{1}{4}$.
+	De (\ref{eq:n2}): $A_2 = \tfrac{1}{2} - \tfrac{1}{3}\cdot\tfrac{3}{4} = \tfrac{1}{2} - \tfrac{1}{4} = \tfrac{1}{4}$
 
-	De (\ref{eq:n1}): $A_0 = 1 - \tfrac{3}{4} - \tfrac{1}{4} = 0$.
+	De (\ref{eq:n1}): $A_0 = 1 - \tfrac{3}{4} - \tfrac{1}{4} = 0$
 
 	La nueva cuadratura queda:
 	\[
@@ -183,9 +183,9 @@ donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, es
 	\[
 	I_2(x^3) = \frac{3}{4}\cdot\left(\frac{1}{3}\right)^3 + \frac{1}{4}\cdot 1^3 = \frac{3}{4}\cdot\frac{1}{27} + \frac{1}{4} = \frac{1}{36} + \frac{9}{36} = \frac{10}{36} = \frac{5}{18}.
 	\]
-	Mientras que $\int_0^1 x^3\,dx = \tfrac{1}{4} = \tfrac{9}{36} \neq \tfrac{5}{18}$.
+	Mientras que $\int_0^1 x^3\,dx = \tfrac{1}{4} = \tfrac{9}{36} \neq \tfrac{5}{18}$
 
-	\textbf{Conclusión:} esta nueva $I_2(f)$ \textit{no} es exacta para $f\in\Pi_3$. El grado de exactitud adicional que tenía la regla de Simpson se pierde al romper la simetría de los nodos. Esto pone en evidencia que la distribución de los nodos juega un papel significativo en la calidad de una cuadratura numérica \cite{chapra07}.
+	\textbf{Conclusión:} esta nueva $I_2(f)$ \textit{no} es exacta para $f\in\Pi_3$ El grado de exactitud adicional que tenía la regla de Simpson se pierde al romper la simetría de los nodos. Esto pone en evidencia que la distribución de los nodos juega un papel significativo en la calidad de una cuadratura numérica \cite{chapra07}.
 \end{enumerate}
 
 
@@ -205,7 +205,7 @@ Como se mencionó en la motivación, una curva de nivel no es necesariamente el 
 	\[
 	\oint_C \bigl(P\,dx + Q\,dy\bigr) = \iint_D \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dA.
 	\]
-	Si elegimos $P(x,y) = -y$ y $Q(x,y) = x$, entonces $\dfrac{\partial Q}{\partial x} - \dfrac{\partial P}{\partial y} = 1 + 1 = 2$, y la doble integral se reduce a $2\,\text{Area}(D)$. De aquí se obtiene la conocida fórmula
+	Si elegimos $P(x,y) = -y$ y $Q(x,y) = x$, entonces $\dfrac{\partial Q}{\partial x} - \dfrac{\partial P}{\partial y} = 1 + 1 = 2$, y la doble integral se reduce a $2\,\text{Area}(D)$ De aquí se obtiene la conocida fórmula
 	\begin{equation}\label{eq:area_green}
 	\text{Area}(D) = \frac{1}{2}\oint_C \bigl(x\,dy - y\,dx\bigr).
 	\end{equation}
@@ -223,16 +223,16 @@ Como se mencionó en la motivación, una curva de nivel no es necesariamente el 
 	%==== ITEM 2 ====
 	\item \textbf{Rol de la integral de línea y la parametrización.}
 
-	La ecuación (\ref{eq:area_green}) expresa el área como una \textit{integral de línea} sobre la curva $C$. Para evaluarla, es necesario describir la curva mediante una parametrización: si $C$ está dada por las funciones $x(t)$ e $y(t)$ con $t\in[t_0, t_n]$, donde $(x(t_0),y(t_0)) = (x(t_n),y(t_n))$, entonces $dx = x'(t)\,dt$ y $dy = y'(t)\,dt$, y la integral de línea se convierte en una integral ordinaria \cite{stewart12}:
+	La ecuación (\ref{eq:area_green}) expresa el área como una \textit{integral de línea} sobre la curva $C$ Para evaluarla, es necesario describir la curva mediante una parametrización: si $C$ está dada por las funciones $x(t)$ e $y(t)$ con $t\in[t_0, t_n]$, donde $(x(t_0),y(t_0)) = (x(t_n),y(t_n))$, entonces $dx = x'(t)\,dt$ y $dy = y'(t)\,dt$, y la integral de línea se convierte en una integral ordinaria \cite{stewart12}:
 	\begin{equation}\label{eq:area_param}
 	\text{Area}(D) = \frac{1}{2}\int_{t_0}^{t_n} \bigl(x(t)\,y'(t) - y(t)\,x'(t)\bigr)\,dt.
 	\end{equation}
 
-	Esta transformación es crucial porque reduce el problema bidimensional a uno unidimensional. En nuestro contexto, se dispone de puntos discretos $(x_i, y_i)$ sobre la curva, los cuales se pueden asociar a valores del parámetro $t_0 < t_1 < \cdots < t_n$. Una elección natural y sencilla es tomar $t_i = i$ para $i=0,1,\ldots,n$, aunque también es posible usar la longitud de arco acumulada como parámetro \cite{cheney08}.
+	Esta transformación es crucial porque reduce el problema bidimensional a uno unidimensional. En nuestro contexto, se dispone de puntos discretos $(x_i, y_i)$ sobre la curva, los cuales se pueden asociar a valores del parámetro $t_0 < t_1 < \cdots < t_n$ Una elección natural y sencilla es tomar $t_i = i$ para $i=0,1,\ldots,n$, aunque también es posible usar la longitud de arco acumulada como parámetro \cite{cheney08}.
 
-	Con los pares $(t_i, x_i)$ y $(t_i, y_i)$ se construyen, por separado, dos polinomios interpolantes (o \textit{splines}): uno para $x(t)$ y otro para $y(t)$. Así, la parametrización transforma un problema de curva en el plano en dos problemas independientes de interpolación en una sola variable, que es precisamente el tipo de problema que ya sabemos resolver con las técnicas de la sección anterior.
+	Con los pares $(t_i, x_i)$ y $(t_i, y_i)$ se construyen, por separado, dos polinomios interpolantes (o \textit{splines}): uno para $x(t)$ y otro para $y(t)$ Así, la parametrización transforma un problema de curva en el plano en dos problemas independientes de interpolación en una sola variable, que es precisamente el tipo de problema que ya sabemos resolver con las técnicas de la sección anterior.
 
-	Ahora bien, la evaluación de (\ref{eq:area_param}) requiere conocer las derivadas $x'(t)$ e $y'(t)$. Si se emplea el polinomio interpolante de Lagrange, estas derivadas se pueden obtener de manera analítica. Recordemos que
+	Ahora bien, la evaluación de (\ref{eq:area_param}) requiere conocer las derivadas $x'(t)$ e $y'(t)$ Si se emplea el polinomio interpolante de Lagrange, estas derivadas se pueden obtener de manera analítica. Recordemos que
 	\[
 	x(t) = \sum_{i=0}^{n} x_i\,L_i(t), \qquad L_i(t) = \prod_{\substack{j=0\\j\neq i}}^{n} \frac{t - t_j}{t_i - t_j}.
 	\]
@@ -253,7 +253,7 @@ Como se mencionó en la motivación, una curva de nivel no es necesariamente el 
 
 	Un aspecto delicado es la elección entre un \textit{único} polinomio interpolante global de grado $n$ o una interpolación \textit{por trozos} con polinomios de grado bajo. Con pocos puntos de control ($n \leq 8$ aproximadamente), el polinomio global suele comportarse bien. Sin embargo, cuando el número de puntos crece, aparecen oscilaciones espurias entre los nodos --- el conocido \textbf{fenómeno de Runge} \cite{cheney08} --- que distorsionan tanto la curva interpolada como el cálculo del área.
 
-	La estrategia adoptada para evitar este problema es la \textbf{interpolación local por ventanas}: para cada segmento paramétrico $[t_i, t_{i+1}]$, se selecciona una ventana de $d+1$ nodos vecinos (donde $d$ es el grado deseado, típicamente $d=3$) centrada alrededor del segmento, y se construye un polinomio de Lagrange \textit{local} usando solo esos nodos. Este polinomio se utiliza tanto para evaluar $x(t)$, $y(t)$ como para obtener las derivadas $x'(t)$, $y'(t)$ dentro del segmento, y luego se aplica la regla de Simpson sobre $[t_i, t_{i+1}]$. La contribución de todos los segmentos se acumula para obtener el área total. Esta técnica mantiene los polinomios en grado bajo, evita las oscilaciones de Runge y permite trabajar con un número arbitrario de puntos de control sin sacrificar estabilidad.
+	La estrategia adoptada para evitar este problema es la \textbf{interpolación local por ventanas}: para cada segmento paramétrico $[t_i, t_{i+1}]$, se selecciona una ventana de $d+1$ nodos vecinos (donde $d$ es el grado deseado, típicamente $d=3$) centrada alrededor del segmento, y se construye un polinomio de Lagrange \textit{local} usando solo esos nodos. Este polinomio se utiliza tanto para evaluar $x(t)$, $y(t)$ como para obtener las derivadas $x'(t)$, $y'(t)$ dentro del segmento, y luego se aplica la regla de Simpson sobre $[t_i, t_{i+1}]$ La contribución de todos los segmentos se acumula para obtener el área total. Esta técnica mantiene los polinomios en grado bajo, evita las oscilaciones de Runge y permite trabajar con un número arbitrario de puntos de control sin sacrificar estabilidad.
 
 	Para calcular el \textbf{área entre dos curvas cerradas} $C_1$ y $C_2$ (por ejemplo, dos curvas de nivel consecutivas donde $C_2$ encierra a $C_1$), se calcula el área de cada región por separado y luego se obtiene la diferencia:
 	\[
