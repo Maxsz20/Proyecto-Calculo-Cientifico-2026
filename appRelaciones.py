@@ -20,7 +20,7 @@ def evaluar_lagrange(tn, vn, t):
 
 
 def derivada_lagrange(tn, vn, t):
-    # Derivada del interpolante de Lagrange en el parametro t.
+    # Derivada del interpolante de Lagrange en el parametro t
     n = len(tn)
     resultado = 0.0
     for i in range(n):
@@ -195,7 +195,7 @@ class AppRelaciones:
         self.var_metodo = tk.StringVar(value="trozos")
         fr_met = tk.Frame(panel)
         fr_met.pack(fill=tk.X)
-        tk.Radiobutton(fr_met, text="Lagrange por trozos",
+        tk.Radiobutton(fr_met, text="Lagrange por ventanas",
                         variable=self.var_metodo, value="trozos").pack(anchor=tk.W)
         tk.Radiobutton(fr_met, text="Shoelace (poligonal)",
                         variable=self.var_metodo, value="shoelace").pack(anchor=tk.W)
@@ -447,13 +447,11 @@ class AppRelaciones:
         self.lbl_info.config(text=f"x = {x:.1f}px   y = {y:.1f}px")
 
     def _convertir_a_dominio(self):
-        # Convierte nodos capturados a pares (x,y) en pixeles.
         c1 = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_c1_px]
         c2 = [self._pixel_a_coord(px, py) for (px, py) in self.nodos_c2_px]
         return c1, c2
 
     def _calcular(self):
-        # Se calcula el area de cada curva y luego la diferencia absoluta.
         if len(self.nodos_c1_px) < 3:
             messagebox.showerror("Error", "C1 necesita al menos 3 nodos")
             return
@@ -542,7 +540,7 @@ class AppRelaciones:
                         xytext=(6, 6), fontsize=7, color="#993333")
 
         if self.area_c1 is not None:
-            met_txt = "Lagrange por trozos" if metodo == "trozos" else "Shoelace"
+            met_txt = "Lagrange por ventanas" if metodo == "trozos" else "Shoelace"
             ax.set_title(
                 f"{met_txt}  |  A(C1)={self.area_c1:.4f}   "
                 f"A(C2)={self.area_c2:.4f}   "
@@ -550,7 +548,6 @@ class AppRelaciones:
 
         ax.set_xlabel("x (px)")
         ax.set_ylabel("y (px)")
-        # En pixeles el eje Y crece hacia abajo; invertimos para coincidir con la imagen.
         ax.invert_yaxis()
         ax.set_aspect("equal")
         ax.legend()

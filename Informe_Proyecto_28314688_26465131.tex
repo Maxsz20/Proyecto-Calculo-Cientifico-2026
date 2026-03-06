@@ -1,0 +1,290 @@
+\documentclass[12pt]{article}
+%ACENTOS
+\usepackage[utf8]{inputenc}
+
+%PAQUETES
+\usepackage{amsfonts,amsmath,amssymb}
+\usepackage{amsmath,latexsym}
+\usepackage{graphics,color, xcolor, soulutf8, enumitem, float}
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+\usepackage{hyperref} %Para colocar direcciones Web
+\usepackage{indentfirst}
+\usepackage{wrapfig}  %Figuras flotantes
+\usepackage{subfig}   %Un ambiente Figura con varias imagenes
+\usepackage{caption}  %Caption a subfig
+\usepackage{multicol}
+
+%MARGEN
+\setlength\topmargin{-0.5in}
+\addtolength\oddsidemargin{-0.7in}
+\setlength{\textheight}{23cm}
+\setlength{\textwidth}{17cm}
+
+%VARIABLES
+\newcommand{\R}{\mathbb R}
+
+%COLORES
+\newcommand{\red}[1]{\textcolor[rgb]{1.00,0.00,0.00}{#1}}
+\newcommand{\blue}[1]{\textcolor[rgb]{0.00,0.00,1.00}{#1}}
+\newcommand{\verde}[1]{\textcolor[rgb]{0.00,0.50,0.25}{#1}}
+
+%OTROS
+\def\refname{Referencias}%
+
+\renewcommand{\baselinestretch}{1}
+\renewcommand\familydefault{\sfdefault}
+
+\begin{document}
+{\footnotesize
+	\begin{tabular}{cc}
+		\hspace*{-1cm}
+		\begin{minipage}[H]{10cm}
+			\noindent UNIVERSIDAD CENTRAL DE VENEZUELA\\
+			FACULTAD DE CIENCIAS\\
+			ESCUELA DE COMPUTACIÓN
+		\end{minipage}
+		&
+		\begin{minipage}[H]{10cm}
+			CÁLCULO CIENTÍFICO (6109)\\
+			SEMESTRE II-2025\\
+			MARZO DE 2026
+		\end{minipage} \\
+\end{tabular}}
+\vspace*{2mm}
+\begin{center}
+	{\Large \textbf{Proyecto: Curvas de Nivel}} \\
+	\vspace*{3mm}
+	{\normalsize Maximiliano Barboza \hspace{1.5cm} Yunior Moreno} \\
+	{\footnotesize CI: 28.314.688 \hspace{2.15cm} CI: 26.465.131}
+\end{center}
+
+%----------------------------------------------------------
+\section*{Motivación}
+%----------------------------------------------------------
+
+En múltiples áreas de la ciencia e ingeniería resulta necesario representar información tridimensional sobre un plano bidimensional. Una superficie definida por $f(x,y)=z$ con $f:\R^2\to\R$ se puede caracterizar parcialmente a través de sus \textit{curvas de nivel}: al interceptar la superficie con planos horizontales $z=k$ se obtienen curvas de contorno que, proyectadas sobre el plano $xy$ conforman dichas curvas de nivel \cite{penney94}.
+
+En cartografía, este recurso es fundamental para representar relieves topográficos. La cercanía entre curvas de nivel consecutivas indica pendientes pronunciadas, mientras que curvas alejadas sugieren terrenos más planos. Más allá de la visualización, el \textbf{área entre curvas de nivel} tiene aplicaciones concretas: en obras de construcción, por ejemplo, permite estimar volúmenes de excavación o relleno, lo que a su vez impacta directamente en los costos operativos de un proyecto.
+
+El presente informe aborda precisamente este problema: desarrollar las herramientas teóricas y computacionales necesarias para \textit{calcular el área entre curvas de nivel}, iniciando por el caso más sencillo --- el de funciones --- y avanzando después hacia curvas cerradas parametrizadas.
+
+%----------------------------------------------------------
+\section*{Área entre dos curvas (funciones)}
+%----------------------------------------------------------
+
+Si $p_n$ es el polinomio interpolante construido con los nodos $(x_i, f(x_i))$ $i=0,1,\ldots,n$; para una cierta función $f$ continua en $[a,b] = [x_0,x_n]$ tiene sentido plantear la aproximación
+\[
+\int_a^b f(x)\,dx \approx \int_a^b p_n(x)\,dx = I_n(f)
+\]
+donde $I_n(f)$ suele denominarse \textit{cuadratura numérica}. Básicamente, esa es la idea central de la integración numérica: cambiar la función original por un polinomio cuya integral sí se pueda calcular de forma directa \cite{cheney08}. A continuación se abordan los requerimientos teóricos asociados a esta estrategia.
+
+%----------------------------------------------------------
+\subsection*{Requerimientos teóricos}
+%----------------------------------------------------------
+
+\begin{enumerate}
+	%==== ITEM 1 ====
+	\item \textbf{Preferencia de base polinomial para integración.}
+
+	El polinomio interpolante $p_n(x)$ se puede expresar en distintas bases del espacio $\Pi_n$: la base canónica $\{1,x,x^2,\ldots,x^n\}$ la base de Lagrange $\{L_0(x),L_1(x),\ldots,L_n(x)\}$ o la base de diferencias divididas de Newton. Puesto que el polinomio interpolante es único sin importar la base que se emplee, las tres representaciones conducen al mismo valor $I_n(f)$ No obstante, para efectos del cálculo de integrales, la \textbf{base de Lagrange} ofrece una ventaja clara \cite{burden02}.
+
+	Al escribir
+	\[
+	p_n(x) = \sum_{i=0}^{n} f(x_i)\,L_i(x)
+	\]
+	la integral se convierte directamente en
+	\[
+	I_n(f) = \int_a^b p_n(x)\,dx = \sum_{i=0}^{n} f(x_i) \underbrace{\int_a^b L_i(x)\,dx}_{A_i} = \sum_{i=0}^{n} A_i\,f(x_i)
+	\]
+	Lo importante es que los coeficientes $A_i$ dependen \textit{únicamente de los nodos} $x_0,x_1,\ldots,x_n$ y del intervalo $[a,b]$ pero no de la función $f$ Esto permite calcular los pesos una sola vez y reutilizarlos para cualquier función. Con la base canónica o la de Newton, esta separación no es tan inmediata, pues los coeficientes del polinomio involucran los valores $f(x_i)$ de manera más entrelazada.
+
+	%==== ITEM 2 ====
+	\item \textbf{Método de los coeficientes indeterminados.}
+
+	Existe una estrategia alternativa para obtener los pesos de cuadratura sin construir explícitamente el polinomio interpolante: el \textbf{método de los coeficientes indeterminados} \cite{chapra07}. Se parte de que la fórmula tiene la forma
+	\[
+	I_n(f) = \sum_{i=0}^{n} A_i\,f(x_i)
+	\]
+	donde los $A_i$ son incógnitas. Para hallarlos, se exige que la fórmula sea \textit{exacta} para $f(x) = 1,\, x,\, x^2, \ldots, x^n$ lo cual genera un sistema de $n+1$ ecuaciones con $n+1$ incógnitas:
+	\[
+	\sum_{i=0}^{n} A_i\,x_i^k = \int_a^b x^k\,dx, \quad k=0,1,\ldots,n
+	\]
+	Este sistema siempre tiene solución única ya que la matriz asociada es de tipo Vandermonde (invertible cuando los nodos son distintos). La ventaja principal es que permite obtener los pesos resolviendo un sistema lineal, sin pasar por la construcción del polinomio ni por el cálculo explícito de las integrales de los $L_i(x)$ Adicionalmente, resulta sencillo verificar si la fórmula posee un \textit{grado de exactitud} superior al esperado: basta comprobar si también resulta exacta para $f(x) = x^{n+1}, x^{n+2},\ldots$
+
+	%==== ITEM 3 ====
+	\item \textbf{Cuadratura con nodos equidistantes en $[0,1]$}
+
+	Consideremos $x_0=0$ $x_1=\tfrac{1}{2}$ y $x_2=1$ con $y_i = f(x_i)$ para $i=0,1,2$ Buscamos $A_0, A_1, A_2$ tales que
+	\[
+	I_2(f) = A_0\,y_0 + A_1\,y_1 + A_2\,y_2
+	\]
+	Aplicando el método de coeficientes indeterminados, imponemos exactitud para $f(x) = 1,\, x,\, x^2$:
+	\begin{align}
+		f(x)=1:   &\quad A_0 + A_1 + A_2 = \int_0^1 1\,dx = 1 \label{eq:s1}\\[4pt]
+		f(x)=x:   &\quad A_0\cdot 0 + A_1\cdot\tfrac{1}{2} + A_2\cdot 1 = \int_0^1 x\,dx = \tfrac{1}{2} \label{eq:s2}\\[4pt]
+		f(x)=x^2: &\quad A_0\cdot 0 + A_1\cdot\tfrac{1}{4} + A_2\cdot 1 = \int_0^1 x^2\,dx = \tfrac{1}{3} \label{eq:s3}
+	\end{align}
+
+	Restando (\ref{eq:s3}) de (\ref{eq:s2}):
+	\[
+	\tfrac{1}{2}A_1 - \tfrac{1}{4}A_1 = \tfrac{1}{2} - \tfrac{1}{3} \quad\Longrightarrow\quad \tfrac{1}{4}A_1 = \tfrac{1}{6} \quad\Longrightarrow\quad A_1 = \frac{2}{3}
+	\]
+	Sustituyendo $A_1$ en (\ref{eq:s2}): $\tfrac{1}{2}\cdot\tfrac{2}{3} + A_2 = \tfrac{1}{2}$ de donde $A_2 = \tfrac{1}{2} - \tfrac{1}{3} = \tfrac{1}{6}$
+
+	De (\ref{eq:s1}): $A_0 = 1 - \tfrac{2}{3} - \tfrac{1}{6} = \tfrac{1}{6}$
+
+	Se obtiene entonces:
+	\[
+	\boxed{I_2(f) = \frac{1}{6}\,y_0 + \frac{2}{3}\,y_1 + \frac{1}{6}\,y_2.}
+	\]
+
+	Los valores $(A_0,A_1,A_2)^T = \left(\tfrac{1}{6},\,\tfrac{2}{3},\,\tfrac{1}{6}\right)^T$ son los \textbf{pesos de cuadratura}, también conocidos como coeficientes de Newton-Cotes \cite{mathworld_newtoncotes}. Cada $A_i$ representa la contribución relativa del valor $f(x_i)$ en la aproximación de la integral. Vale la pena mencionar que esta fórmula coincide con la conocida \textit{regla de Simpson} aplicada a $[0,1]$ \cite{cheney08, burden02}.
+
+	\begin{itemize}
+		\item \textbf{Exactitud para $f \in \Pi_3$} La fórmula $I_2(f)$ fue diseñada para ser exacta en $\Pi_2$ pues se usaron las condiciones $f=1,\,x,\,x^2$ Sin embargo, también resulta exacta para polinomios de grado 3. Como la integral y la cuadratura son operadores lineales, basta verificar para $f(x) = x^3$ (ya que $\{1,x,x^2,x^3\}$ es base de $\Pi_3$):
+		\[
+		I_2(x^3) = \frac{1}{6}\cdot 0^3 + \frac{2}{3}\cdot\left(\frac{1}{2}\right)^3 + \frac{1}{6}\cdot 1^3 = \frac{2}{3}\cdot\frac{1}{8} + \frac{1}{6} = \frac{1}{12} + \frac{2}{12} = \frac{1}{4}
+		\]
+		Por otro lado:
+		\[
+		\int_0^1 x^3\,dx = \frac{x^4}{4}\bigg|_0^1 = \frac{1}{4}
+		\]
+		Dado que $I_2(x^3) = \int_0^1 x^3\,dx$ y ya se tiene exactitud para $1,\,x,\,x^2$ se concluye por linealidad que $I_2(f) = \int_0^1 f(x)\,dx$ para todo $f\in\Pi_3$ $\blacksquare$
+
+		Este grado de exactitud extra es una propiedad particular de la regla de Simpson que se debe a la simetría de los nodos respecto al centro del intervalo \cite{mathworld_simpson}.
+	\end{itemize}
+
+	%==== ITEM 4 ====
+	\item \textbf{Cuadratura con nodos no equidistantes.}
+
+	Ahora tomemos $x_0=0$ $x_1=\tfrac{1}{3}$ y $x_2=1$ Aplicando nuevamente el método:
+	\begin{align}
+		f(x)=1:   &\quad A_0 + A_1 + A_2 = 1 \label{eq:n1}\\[4pt]
+		f(x)=x:   &\quad \tfrac{1}{3}A_1 + A_2 = \tfrac{1}{2} \label{eq:n2}\\[4pt]
+		f(x)=x^2: &\quad \tfrac{1}{9}A_1 + A_2 = \tfrac{1}{3} \label{eq:n3}
+	\end{align}
+
+	Restando (\ref{eq:n3}) de (\ref{eq:n2}):
+	\[
+	\left(\tfrac{1}{3} - \tfrac{1}{9}\right)A_1 = \tfrac{1}{2} - \tfrac{1}{3} \quad\Longrightarrow\quad \tfrac{2}{9}\,A_1 = \tfrac{1}{6} \quad\Longrightarrow\quad A_1 = \frac{3}{4}
+	\]
+	De (\ref{eq:n2}): $A_2 = \tfrac{1}{2} - \tfrac{1}{3}\cdot\tfrac{3}{4} = \tfrac{1}{2} - \tfrac{1}{4} = \tfrac{1}{4}$
+
+	De (\ref{eq:n1}): $A_0 = 1 - \tfrac{3}{4} - \tfrac{1}{4} = 0$
+
+	La nueva cuadratura queda:
+	\[
+	I_2(f) = \frac{3}{4}\,y_1 + \frac{1}{4}\,y_2
+	\]
+
+	Un dato llamativo es que $A_0=0$ es decir, el valor $f(0)$ no aporta nada a la aproximación. Esto ya da indicios de que la distribución de nodos no es favorable.
+
+	Verifiquemos para $f(x) = x^3$:
+	\[
+	I_2(x^3) = \frac{3}{4}\cdot\left(\frac{1}{3}\right)^3 + \frac{1}{4}\cdot 1^3 = \frac{3}{4}\cdot\frac{1}{27} + \frac{1}{4} = \frac{1}{36} + \frac{9}{36} = \frac{10}{36} = \frac{5}{18}
+	\]
+	Mientras que $\int_0^1 x^3\,dx = \tfrac{1}{4} = \tfrac{9}{36} \neq \tfrac{5}{18}$
+
+	\textbf{Conclusión:} esta nueva $I_2(f)$ \textit{no} es exacta para $f\in\Pi_3$ El grado de exactitud adicional que tenía la regla de Simpson se pierde al romper la simetría de los nodos. Esto pone en evidencia que la distribución de los nodos juega un papel significativo en la calidad de una cuadratura numérica \cite{chapra07}.
+\end{enumerate}
+
+
+%----------------------------------------------------------
+\section*{Área entre dos curvas cerradas (relaciones)}
+%----------------------------------------------------------
+
+Como se mencionó en la motivación, una curva de nivel no es necesariamente el gráfico de una función; se trata más bien de una figura cerrada en el plano. Para abordar el cálculo de áreas en este contexto, se requieren herramientas del cálculo vectorial, en particular el \textbf{teorema de Green} y el concepto de \textbf{integral de línea} \cite{stewart12}.
+
+\subsection*{Requerimientos teóricos}
+
+\begin{enumerate}
+	%==== ITEM 1 ====
+	\item \textbf{Área de una figura cerrada a partir de mediciones discretas.}
+
+	Sea $C$ una curva cerrada simple (sin autointersecciones) recorrida en sentido antihorario, y sea $D$ la región que encierra. El teorema de Green establece que \cite{stewart12, mathworld_green}
+	\[
+	\oint_C \bigl(P\,dx + Q\,dy\bigr) = \iint_D \left(\frac{\partial Q}{\partial x} - \frac{\partial P}{\partial y}\right) dA
+	\]
+	Si elegimos $P(x,y) = -y$ y $Q(x,y) = x$ entonces $\dfrac{\partial Q}{\partial x} - \dfrac{\partial P}{\partial y} = 1 + 1 = 2$ y la doble integral se reduce a $2\,\text{Area}(D)$ De aquí se obtiene la conocida fórmula
+	\begin{equation}\label{eq:area_green}
+	\text{Area}(D) = \frac{1}{2}\oint_C \bigl(x\,dy - y\,dx\bigr)
+	\end{equation}
+
+	Ahora bien, en la práctica no se dispone de la curva continua sino de un conjunto finito de mediciones $(x_i, y_i)$ $i=0,1,\ldots,n$ con la condición $(x_0,y_0) = (x_n,y_n)$ que garantiza el cierre de la figura. El procedimiento más directo para aproximar el área consiste en unir los puntos consecutivos mediante segmentos rectos (interpolación lineal a trozos). Sobre cada segmento que va de $(x_i, y_i)$ a $(x_{i+1}, y_{i+1})$ la contribución a la integral de línea es
+	\[
+	\frac{1}{2}\bigl(x_i\,y_{i+1} - x_{i+1}\,y_i\bigr)
+	\]
+	Sumando sobre todos los segmentos se llega a la \textbf{fórmula del cordón} (también llamada \textit{Shoelace formula}) \cite{mathworld_shoelace}:
+	\begin{equation}\label{eq:shoelace}
+	\text{Area} = \frac{1}{2}\left|\sum_{i=0}^{n-1}\bigl(x_i\,y_{i+1} - x_{i+1}\,y_i\bigr)\right|
+	\end{equation}
+	El valor absoluto se incluye para obtener un área positiva independientemente del sentido de recorrido. Esta fórmula es exacta cuando la curva es un polígono; para curvas suaves, su precisión depende de cuán bien los segmentos rectos aproximen la curva original.
+
+	%==== ITEM 2 ====
+	\item \textbf{Rol de la integral de línea y la parametrización.}
+
+	La ecuación (\ref{eq:area_green}) expresa el área como una \textit{integral de línea} sobre la curva $C$ Para evaluarla, es necesario describir la curva mediante una parametrización: si $C$ está dada por las funciones $x(t)$ e $y(t)$ con $t\in[t_0, t_n]$ donde $(x(t_0),y(t_0)) = (x(t_n),y(t_n))$ entonces $dx = x'(t)\,dt$ y $dy = y'(t)\,dt$ y la integral de línea se convierte en una integral ordinaria \cite{stewart12}:
+	\begin{equation}\label{eq:area_param}
+	\text{Area}(D) = \frac{1}{2}\int_{t_0}^{t_n} \bigl(x(t)\,y'(t) - y(t)\,x'(t)\bigr)\,dt
+	\end{equation}
+
+	Esta transformación es crucial porque reduce el problema bidimensional a uno unidimensional. En nuestro contexto, se dispone de puntos discretos $(x_i, y_i)$ sobre la curva, los cuales se pueden asociar a valores del parámetro $t_0 < t_1 < \cdots < t_n$ Una elección natural y sencilla es tomar $t_i = i$ para $i=0,1,\ldots,n$ aunque también es posible usar la longitud de arco acumulada como parámetro \cite{cheney08}.
+
+	Con los pares $(t_i, x_i)$ y $(t_i, y_i)$ se construyen, por separado, dos polinomios interpolantes (o \textit{splines}): uno para $x(t)$ y otro para $y(t)$ Así, la parametrización transforma un problema de curva en el plano en dos problemas independientes de interpolación en una sola variable, que es precisamente el tipo de problema que ya sabemos resolver con las técnicas de la sección anterior.
+
+	Ahora bien, la evaluación de (\ref{eq:area_param}) requiere conocer las derivadas $x'(t)$ e $y'(t)$ Si se emplea el polinomio interpolante de Lagrange, estas derivadas se pueden obtener de manera analítica. Recordemos que
+	\[
+	x(t) = \sum_{i=0}^{n} x_i\,L_i(t), \qquad L_i(t) = \prod_{\substack{j=0\\j\neq i}}^{n} \frac{t - t_j}{t_i - t_j}
+	\]
+	Derivando respecto a $t$ y aplicando la regla del producto sobre cada $L_i$:
+	\begin{equation}\label{eq:deriv_lagrange}
+	x'(t) = \sum_{i=0}^{n} x_i\,L_i'(t), \qquad L_i'(t) = \sum_{\substack{k=0\\k\neq i}}^{n} \frac{1}{t_i - t_k}\prod_{\substack{j=0\\j\neq i\\j\neq k}}^{n} \frac{t - t_j}{t_i - t_j}
+	\end{equation}
+	La expresión es algo extensa pero perfectamente calculable de forma algorítmica, y tiene la ventaja de no requerir diferenciación numérica (cocientes de diferencias finitas), lo que evita la amplificación de errores de redondeo inherente a ese tipo de aproximaciones \cite{burden02}.
+
+	%==== ITEM 3 ====
+	\item \textbf{Integración numérica en este contexto.}
+
+	Una vez obtenidas las funciones interpolantes $x(t)$ e $y(t)$ --- ya sea mediante polinomios de Lagrange por trozos o \textit{splines} --- se requiere calcular la integral (\ref{eq:area_param}). Para ello se puede emplear cualquier regla de cuadratura; en particular, la \textbf{regla de Simpson compuesta} ofrece un buen balance entre sencillez y precisión \cite{burden02}. El integrando es
+	\[
+	h(t) = x(t)\,y'(t) - y(t)\,x'(t)
+	\]
+	donde las derivadas $x'(t)$ e $y'(t)$ se obtienen mediante la expresión (\ref{eq:deriv_lagrange}).
+
+	Un aspecto delicado es la elección entre un \textit{único} polinomio interpolante global de grado $n$ o una interpolación \textit{por trozos} con polinomios de grado bajo. Con pocos puntos de control ($n \leq 8$ aproximadamente), el polinomio global suele comportarse bien. Sin embargo, cuando el número de puntos crece, aparecen oscilaciones espurias entre los nodos --- el conocido \textbf{fenómeno de Runge} \cite{cheney08} --- que distorsionan tanto la curva interpolada como el cálculo del área.
+
+	La estrategia adoptada para evitar este problema es la \textbf{interpolación local por ventanas}: para cada segmento paramétrico $[t_i, t_{i+1}]$ se selecciona una ventana de $d+1$ nodos vecinos (donde $d$ es el grado deseado, típicamente $d=3$) centrada alrededor del segmento, y se construye un polinomio de Lagrange \textit{local} usando solo esos nodos. Este polinomio se utiliza tanto para evaluar $x(t)$ $y(t)$ como para obtener las derivadas $x'(t)$ $y'(t)$ dentro del segmento, y luego se aplica la regla de Simpson sobre $[t_i, t_{i+1}]$ La contribución de todos los segmentos se acumula para obtener el área total. Esta técnica mantiene los polinomios en grado bajo, evita las oscilaciones de Runge y permite trabajar con un número arbitrario de puntos de control sin sacrificar estabilidad.
+
+	Para calcular el \textbf{área entre dos curvas cerradas} $C_1$ y $C_2$ (por ejemplo, dos curvas de nivel consecutivas donde $C_2$ encierra a $C_1$), se calcula el área de cada región por separado y luego se obtiene la diferencia:
+	\[
+	\text{Area entre curvas} = \bigl|\text{Area}(D_2) - \text{Area}(D_1)\bigr|
+	\]
+	donde $D_1$ y $D_2$ son las regiones encerradas por $C_1$ y $C_2$ respectivamente. Este enfoque es completamente análogo al de la Parte 1, donde el área entre funciones se obtenía integrando $|f(x) - g(x)|$ solo que aquí cada ``función'' es en realidad el área encerrada por una curva parametrizada.
+
+	Conviene mencionar que la fórmula del cordón (\ref{eq:shoelace}) puede interpretarse como un caso particular de este procedimiento: corresponde a usar interpolación lineal ($d=1$) entre puntos consecutivos y calcular la integral de línea de forma exacta sobre cada segmento recto. Cuando se emplea interpolación de grado superior ($d=3$ por ejemplo), las curvas entre nodos dejan de ser rectas y pasan a ser arcos suaves, lo que mejora la aproximación del área para figuras con contornos curvos, a costa de un mayor esfuerzo computacional.
+\end{enumerate}
+
+
+%----------------------------------------------------------
+\section*{Descripción de los métodos numéricos empleados}
+%----------------------------------------------------------
+
+En la implementación computacional se utilizan los siguientes métodos numéricos:
+
+\begin{itemize}
+	\item \textbf{Interpolación mediante spline cúbico natural (área entre funciones).} Para interpolar las curvas $f(x)$ y $g(x)$ a partir de los nodos que el usuario coloca sobre la imagen, se utiliza un spline cúbico con condición de frontera natural. Cuando el usuario define líneas de división, la interpolación se realiza por tramos: en cada subintervalo se construye un spline cúbico independiente con los nodos que le corresponden. Un spline cúbico es, esencialmente, una función polinómica a trozos de grado~3 que pasa por todos los nodos y cuya primera y segunda derivada son continuas en los puntos de unión; la condición ``natural'' significa que $S''(x_0) = S''(x_n) = 0$ en los extremos, de modo que la curva no se fuerza a curvarse en los bordes \cite{burden02, cheney08}. En la práctica se emplea la clase \texttt{CubicSpline} del módulo \texttt{scipy.interpolate} \cite{scipy_cubicspline} con el parámetro \texttt{bc\_type="natural"}; internamente, esta rutina plantea y resuelve un sistema tridiagonal de ecuaciones para obtener los coeficientes de cada trozo cúbico, lo que resulta eficiente ($O(n)$) gracias a la estructura de banda de la matriz \cite{burden02}.
+
+	\item \textbf{Interpolación local de Lagrange por ventanas (área entre curvas cerradas).} Para las curvas cerradas parametrizadas, se interpola con polinomios de Lagrange de forma local: en cada segmento paramétrico $[t_i, t_{i+1}]$ se toma una ventana de $d+1$ nodos vecinos (con $d=3$) y se construye un polinomio de Lagrange solo con esos nodos. De esta manera se obtienen los valores $x(t)$, $y(t)$ y sus derivadas $x'(t)$, $y'(t)$ de forma analítica mediante (\ref{eq:deriv_lagrange}), sin recurrir a un polinomio global de grado alto que podría oscilar \cite{cheney08}.
+
+	\item \textbf{Regla de Simpson compuesta.} Para la aproximación de integrales definidas se utiliza la regla de Simpson compuesta con $N = 200$ subintervalos (por defecto). Como se demostró en la sección teórica, esta regla es exacta para polinomios de grado $\leq 3$ lo que le confiere un error de orden $O(h^4)$ donde $h$ es el ancho de cada subintervalo \cite{mathworld_simpson, burden02}. La fórmula implementada es:
+	\[
+	\int_a^b f(x)\,dx \approx \frac{h}{3}\left[f(x_0) + f(x_N) + 4\sum_{\substack{i=1 \\ i\text{ impar}}}^{N-1} f(x_i) + 2\sum_{\substack{i=2 \\ i\text{ par}}}^{N-2} f(x_i)\right]
+	\]
+\end{itemize}
+
+
+\bibliography{biblio}
+\bibliographystyle{plain}
+
+\end{document}

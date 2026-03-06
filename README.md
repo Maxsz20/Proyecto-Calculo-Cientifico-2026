@@ -2,7 +2,7 @@
 
 Este README contiene solo instrucciones de uso y consideraciones practicas de la aplicacion.
 
-## Are entre dos curvas (funciones) - appFunciones.py
+## Área entre dos curvas (funciones) - appFunciones.py
 
 ### Uso
 1. Ejecutar `appFunciones.py`.
@@ -25,7 +25,7 @@ Este README contiene solo instrucciones de uso y consideraciones practicas de la
 - El area entre curvas se calcula solo donde ambas curvas quedan definidas por sus nodos (rango comun): desde el primer punto en x compartido hasta el ultimo punto en x compartido
 - El resultado de area se muestra en `px^2`
 
-## Are entre curvas cerradas (Relaciones) - appRelaciones.py
+## Área entre curvas cerradas (Relaciones) - appRelaciones.py
 
 ### Uso
 1. Ejecutar `appRelaciones.py`
