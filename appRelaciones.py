@@ -134,9 +134,7 @@ class AppRelaciones:
 
         self._separador(panel)
 
-        tk.Label(panel, text="Trabajo en pixeles", font=("Arial", 9, "bold")).pack(anchor=tk.W)
-        tk.Label(panel, text="Defina limites con clicks (a,b,c,d).",
-                 font=("Arial", 8), fg="gray40").pack(anchor=tk.W, pady=(0, 2))
+        tk.Label(panel, text="Definir limites en radios rojos de abajo", font=("Arial", 9, "bold")).pack(anchor=tk.W)
 
         self._separador(panel)
 
