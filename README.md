@@ -1,7 +1,12 @@
 # Proyecto de Calculo Cientifico - Guia de uso
 
-Este README contiene solo instrucciones de uso y consideraciones practicas de la aplicacion.
+Este README contiene solo instrucciones de uso y consideraciones practicas de la aplicacion
 
+## Requisitos de librerias
+
+```bash
+pip install numpy matplotlib scipy Pillow
+```
 ## Área entre dos curvas (funciones) - appFunciones.py
 
 ### Uso
